@@ -1,6 +1,6 @@
-# docs-assistant (RAG) — הוראות עבודה ל-Claude Code
+# labor-rights-rag (RAG) — הוראות עבודה ל-Claude Code
 
-> זה ה-`CLAUDE.md` של הריפו `docs-assistant-py`.
+> זה ה-`CLAUDE.md` של הריפו `labor-rights-rag-py`.
 > תקשורת איתי בעברית. קוד, שמות, הודעות commit ו-README: באנגלית.
 
 ## החלטות שנסגרו (גוברות על כל סעיף סותר בהמשך)
@@ -12,11 +12,11 @@
 - **הערכה:** hit@k ו-MRR הם חלק מרכזי בערך הפרויקט. שאלות ההערכה נכתבות על ידי.
 - **כרטיס אימות בכל תשובה:** שם החוק, מספר הסעיף, ציטוט מילולי מה-DB (לא מהמודל), "נוסח נכון לתאריך", הוראת חיפוש וקישור לעמוד החוק במאגר החקיקה הלאומי של הכנסת, והצהרה: "אינו ייעוץ משפטי; הנוסח המחייב מתפרסם ברשומות". הקישור מוצג למשתמש בלבד. המערכת לא קוראת אותו.
 - **Commits:** באנגלית, בלי טריילר `Co-Authored-By` ובלי אזכור AI בהיסטוריית הגיט. הכלל הזה גובר על כל ברירת מחדל של הכלים. גילוי איך הפרויקט נבנה, אם בכלל, ייעשה ב-README.
-- **GitHub:** הריפו הפרטי `nemiys/docs-assistant-py` קיים. לא לדחוף ולא להפוך לציבורי בלי אישור מפורש שלי. לפני הפיכה לציבורי: סריקת היסטוריה לסודות ובדיקת רישיונות (ויקיטקסט הוא CC BY-SA 4.0).
+- **GitHub:** הריפו הפרטי `nemiys/labor-rights-rag-py` קיים. לא לדחוף ולא להפוך לציבורי בלי אישור מפורש שלי. לפני הפיכה לציבורי: סריקת היסטוריה לסודות ובדיקת רישיונות (ויקיטקסט הוא CC BY-SA 4.0).
 
 ## 0. מטרה והקשר
 
-אני (נמי) בונה portfolio של backend. `docs-assistant` עונה על שאלות של אזרח על זכויות עבודה בישראל. הוא מוצא את הסעיפים הרלוונטיים בחוק ומנסח מהם תשובה בעברית פשוטה, עם ציטוט וכרטיס אימות מול מקור ממשלתי.
+אני (נמי) בונה portfolio של backend. `labor-rights-rag` עונה על שאלות של אזרח על זכויות עבודה בישראל. הוא מוצא את הסעיפים הרלוונטיים בחוק ומנסח מהם תשובה בעברית פשוטה, עם ציטוט וכרטיס אימות מול מקור ממשלתי.
 
 הרעיון של ה-ingestion בא מ-`nemiys-searchengine` (קורס ב-Java), אבל כאן במקום crawler יש fetcher מונחה קונפיגורציה, כי יש רשימה סגורה של חוקים וממשק API.
 
@@ -49,7 +49,7 @@
 
 1. **מקור רעיון (קריאה בלבד):** `nemiys/nemiys-searchengine` (פרטי), דרך `gh api`. לשחזר את הרעיון, לא לתרגם שורה אחר שורה. **לא להעתיק credentials או קונפיגורציה מה-README.** ה-README מכיל סיסמת Elasticsearch בטקסט גלוי: לא לצטט אותה בשום מקום.
 2. **מקור מוסכמות (קריאה בלבד):** `nemiys/wikiguard-py` (ציבורי, branch `master`). לשחזר: uv + `uv_build`, src layout, `pydantic-settings` ב-`settings.py` עם ברירות מחדל ל-localhost, ruff (line 100, E/F/I/UP/B), `pytest` עם `asyncio_mode=auto`, Dockerfile עם uv, ADR ממוספרים, SQLAlchemy 2 async עם Pydantic schemas נפרדים. **לא לשחזר** את הכלל של wikiguard-py על `Co-Authored-By`: כאן הוא אסור.
-3. **הריפו של הפרויקט:** `nemiys/docs-assistant-py` (פרטי, branch `main`).
+3. **הריפו של הפרויקט:** `nemiys/labor-rights-rag-py` (פרטי, branch `main`).
 
 ## 3. ארכיטקטורה
 
@@ -79,7 +79,7 @@ corpus.yaml ─► Fetcher: ויקיטקסט API (revid, wikitext) + OData של 
 
 ### מבנה מוצע
 ```
-src/docs_assistant/{ingest,parsing,chunking,embeddings,retrieval,generation,api,persistence}/
+src/labor_rights_rag/{ingest,parsing,chunking,embeddings,retrieval,generation,api,persistence}/
   settings.py  main.py
 corpus.yaml  eval/{questions.jsonl,run_eval.py}  docs/adr/  tests/  alembic/
 docker-compose.yml (pgvector + redis)  Dockerfile  .github/workflows/ci.yml
@@ -94,7 +94,7 @@ docker-compose.yml (pgvector + redis)  Dockerfile  .github/workflows/ci.yml
 | POST | `/ask` | `{question}` מחזיר תשובה, ציטוטים, כרטיס אימות ומדדי latency וטוקנים |
 | GET | `/health` | בדיקת חיים |
 
-האינדוקס מופעל ב-CLI: `uv run python -m docs_assistant.ingest`.
+האינדוקס מופעל ב-CLI: `uv run python -m labor_rights_rag.ingest`.
 
 ## 5. נקודות החלטה (לעצור ולשאול אותי)
 

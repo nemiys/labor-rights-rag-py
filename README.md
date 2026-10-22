@@ -1,4 +1,4 @@
-# docs-assistant-py
+# labor-rights-rag-py
 
 Question answering over Israeli labor laws, in Hebrew: fetch, parse, chunk,
 embed, hybrid retrieval (vector + full-text), and answers with citations and a
@@ -17,7 +17,7 @@ retrieval, and all laws in the prompt).
 docker compose up -d --wait
 uv sync
 uv run pytest
-uv run uvicorn docs_assistant.main:app --port 8002
+uv run uvicorn labor_rights_rag.main:app --port 8002
 ```
 
 The app is also available through Compose on `http://localhost:8002/health`.

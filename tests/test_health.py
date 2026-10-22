@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from docs_assistant.main import create_app
+from labor_rights_rag.main import create_app
 
 
 def test_health_returns_ok() -> None:

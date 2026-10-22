@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="docs-assistant")
+    app = FastAPI(title="labor-rights-rag")
 
     @app.get("/health")
     async def health() -> dict[str, str]:

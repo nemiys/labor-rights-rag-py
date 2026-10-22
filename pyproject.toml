@@ -1,5 +1,5 @@
 [project]
-name = "docs-assistant-py"
+name = "labor-rights-rag-py"
 version = "0.1.0"
 description = "RAG question answering over technical documentation, with hand-written retrieval and evaluation"
 authors = [
@@ -17,7 +17,7 @@ requires = ["uv_build>=0.12.15,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "docs_assistant"
+module-name = "labor_rights_rag"
 
 [tool.ruff]
 line-length = 100
