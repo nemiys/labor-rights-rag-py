@@ -1,12 +1,15 @@
 # docs-assistant-py
 
-Question answering over the FastAPI documentation: crawl, chunk, embed, hybrid
-retrieval (vector + full-text), and answers with citations.
+Question answering over Israeli labor laws, in Hebrew: fetch, parse, chunk,
+embed, hybrid retrieval (vector + full-text), and answers with citations and a
+verification card that points to the official Knesset legislation database.
 
 Retrieval is written by hand (no LangChain / LlamaIndex) and measured with
-hit@k and MRR on a hand-written question set.
+hit@k and MRR on a hand-written question set, against two baselines (no
+retrieval, and all laws in the prompt).
 
-> Status: stage 0 (project skeleton). Nothing but `/health` works yet.
+> Status: stage 1 (decisions and data model). Nothing but `/health` works yet.
+> Not legal advice. The binding text of a law is published in Reshumot.
 
 ## Run locally
 

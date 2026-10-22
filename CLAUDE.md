@@ -1,145 +1,156 @@
 # docs-assistant (RAG) — הוראות עבודה ל-Claude Code
 
-> זה ה-`CLAUDE.md` של הריפו `docs-assistant`.
+> זה ה-`CLAUDE.md` של הריפו `docs-assistant-py`.
 > תקשורת איתי בעברית. קוד, שמות, הודעות commit ו-README: באנגלית.
 
 ## החלטות שנסגרו (גוברות על כל סעיף סותר בהמשך)
 
-- **Corpus:** תיעוד FastAPI (`fastapi.tiangolo.com`, רישיון MIT). לא Kafka. (נקודת החלטה 1 סגורה.)
+- **Corpus:** חוקי עבודה בישראל, בעברית. כ-20 חוקים ומעלה, מוגדרים ב-`corpus.yaml`. הגבול הוא הנושא (יחסי עבודה), לא המספר. FastAPI יצא מהפרויקט. מחוץ ל-scope: חקיקת משנה (תקנות, צווי הרחבה), הסכמים קיבוציים, פסיקה.
+- **מקור הטקסט:** ספר החוקים הפתוח (ויקיטקסט העברי), דרך MediaWiki API. **מקור לאימות תוקף:** OData של הכנסת (`KNS_IsraelLaw`). פירוט וסיבות ב-`docs/adr/`.
+- **אסור כמקור:** nevo (מסחרי), `gov.il` HTML (מאחורי Cloudflare, לא עוקפים), אתרי נדל"ן ובלוגים, קובצי PDF של `btl.gov.il` (נוסחים ישנים וחדשים מעורבבים).
 - **ליבת retrieval נכתבת ידנית:** בלי LangChain / LlamaIndex / Haystack.
 - **הערכה:** hit@k ו-MRR הם חלק מרכזי בערך הפרויקט. שאלות ההערכה נכתבות על ידי.
+- **כרטיס אימות בכל תשובה:** שם החוק, מספר הסעיף, ציטוט מילולי מה-DB (לא מהמודל), "נוסח נכון לתאריך", הוראת חיפוש וקישור לעמוד החוק במאגר החקיקה הלאומי של הכנסת, והצהרה: "אינו ייעוץ משפטי; הנוסח המחייב מתפרסם ברשומות". הקישור מוצג למשתמש בלבד. המערכת לא קוראת אותו.
 - **Commits:** באנגלית, בלי טריילר `Co-Authored-By` ובלי אזכור AI בהיסטוריית הגיט. הכלל הזה גובר על כל ברירת מחדל של הכלים. גילוי איך הפרויקט נבנה, אם בכלל, ייעשה ב-README.
-- **GitHub:** לא ליצור ריפו, לא לעשות push, ולא להפוך לציבורי בלי אישור מפורש שלי.
-- **סגנון עבודה:** תכנית, הסבר, כתיבה.
-  - לפני כל קונספט חדש או החלטה טכנית: מה זה, למה בוחרים בזה, טרייד-אופס עיקריים. רק אחר כך קוד או צעדים.
-  - בסוף כל שלב: סיכום קצר של מה נבנה ומה למדתי.
-  - המטרה היא שאבין את המערכת, לא רק שתעבוד.
+- **GitHub:** הריפו הפרטי `nemiys/docs-assistant-py` קיים. לא לדחוף ולא להפוך לציבורי בלי אישור מפורש שלי. לפני הפיכה לציבורי: סריקת היסטוריה לסודות ובדיקת רישיונות (ויקיטקסט הוא CC BY-SA 4.0).
 
 ## 0. מטרה והקשר
 
-אני (נמי) בונה portfolio של backend. `docs-assistant` הוא עוזר שאלות ותשובות על תיעוד טכני, **בנוי על רעיון ה-crawler של `nemiys-searchengine`** (פרויקט קורס ב-Java: BFS crawler, Redis, Kafka, Elasticsearch), ומשודרג לפייתון ול-RAG.
+אני (נמי) בונה portfolio של backend. `docs-assistant` עונה על שאלות של אזרח על זכויות עבודה בישראל. הוא מוצא את הסעיפים הרלוונטיים בחוק ומנסח מהם תשובה בעברית פשוטה, עם ציטוט וכרטיס אימות מול מקור ממשלתי.
+
+הרעיון של ה-ingestion בא מ-`nemiys-searchengine` (קורס ב-Java), אבל כאן במקום crawler יש fetcher מונחה קונפיגורציה, כי יש רשימה סגורה של חוקים וממשק API.
 
 מה הפרויקט צריך להוכיח:
-1. pipeline מלא: crawl, ניקוי, chunking, embeddings, אחסון, retrieval, יצירת תשובה עם ציטוטים.
-2. **שליטה בלוגיקת ה-retrieval.** אני כותב אותה בעצמי, בלי LangChain ובלי LlamaIndex.
-3. **הערכה כמותית** של איכות החיפוש. זה מה שמפריד פרויקט RAG רציני מדמו.
+1. pipeline מלא: אחזור, פרסור, chunking, embeddings, אחסון, retrieval, תשובה עם ציטוטים.
+2. **שליטה בלוגיקת ה-retrieval.** אני כותב אותה בעצמי.
+3. **הערכה כמותית:** איכות החיפוש (hit@k, MRR) והשוואה של המערכת מול Claude בלי retrieval ומול "כל החוקים ב-prompt".
+4. **ניהול גרסאות של טקסט משפטי:** איך יודעים שהנוסח עדכני, ומה קורה כשהוא לא.
 
 ## 1. חוזה עבודה (חשוב מאוד)
 
-- אני חייב להבין ולהסביר כל חלק. עובדים בשיטה **"תכנית, הסבר, כתיבה"**: תכנית קצרה לפני כל שלב, סיכום החלטות אחריו.
+- אני חייב להבין ולהסביר כל חלק. עובדים בשיטה **"תכנית, הסבר, כתיבה"**.
 - **נקודות החלטה (סעיף 5):** עוצרים ושואלים. לא מחליטים לבד.
-- חלקים המסומנים 🧠 הם הליבה שלי (chunking, חיבור תוצאות החיפוש, בניית ה-prompt, ההערכה). בהם: בדיקות ושלד עם `TODO` קודם, ואני מממש. אם אני מבקש שתכתוב, בחתיכות קטנות עם הסבר.
-- **סט שאלות ההערכה נכתב על ידי** (סעיף 7), לא על ידך. זה החלק שמוכיח שאני מבין את הנושא.
-- commit קטן לכל צעד. הודעות באנגלית (`feat:`/`fix:`/`test:`/`docs:`/`chore:`). **בלי** טריילר `Co-Authored-By` ובלי אזכור AI בהיסטוריית הגיט (כמו ב-wiki-guard).
-- commit ו-push רק כשאני מבקש או מאשר.
+- חלקים המסומנים 🧠 הם הליבה שלי (chunking, חיבור תוצאות החיפוש, בניית ה-prompt, ההערכה). בהם: בדיקות ושלד עם `TODO` קודם, ואני מממש. אם אני מבקש שתכתוב, בחתיכות קטנות עם הסבר לכל פונקציה.
+- **סט שאלות ההערכה נכתב על ידי** (סעיף 7), לא על ידך.
+- commit קטן לכל צעד לוגי. הודעות באנגלית (`feat:`/`fix:`/`test:`/`docs:`/`chore:`/`ci:`). **בלי** `Co-Authored-By` ובלי אזכור AI.
+- push רק כשאני מאשר. בסוף כל שלב, אחרי הסיכום ושאלות ההבנה: מבקשים אישור, דוחפים, ובודקים שה-CI ירוק.
+- בלי סודות בקוד או בהיסטוריה. `.env.example` בלבד.
+
+### שיטת עבודה
+- **עברית פשוטה, משפטים קצרים.** מעט אנגלית באמצע משפט. מונח באנגלית שחייבים: בסוגריים או בשורה נפרדת.
+- **בתחילת כל שלב:** התמונה הגדולה (מה זה, למה, איך החלקים מתחברים). אחר כך צעד אחד בכל פעם: הסבר מלא, ורק אז כתיבה. לא מבקשים ממני להסביר קוד שלא הוסבר לי.
+- **באמצע שלב** שואלים רק "ברור? משהו לא ברור?". שאלות הבנה בסוף השלב, אחרי כל הצעדים.
+- **בשאלות רב-ברירה** התשובה הנכונה לא תמיד ראשונה. שואלים על הרעיון המרכזי, לא על פרטי מימוש. אם אמרתי "לא הסברת על זה", מסבירים שוב ולא שואלים שוב.
+- **בדיקות** מוצגות בטבלה אחת: איזו בדיקה ומה המטרה שלה. את קוד היישום מסבירים במלואו.
+- **סיכום שלב** במבנה קבוע: לפני ואחרי, מה אפשר לעשות עכשיו (פעולות קונקרטיות), איך זה עובד מאחורי הקלעים, תקלה שנתפסה בדרך (אם הייתה), מה עדיין לא קיים, ושורת מספרים.
+- **לא מוסיפים ספרייה בלי הסבר קצר למה.** בדיקה לכל באג לפני התיקון.
 
 ## 2. גישה לריפוזיטורי
 
-1. **מקור לוגיקה (קריאה בלבד):** `nemiys/nemiys-searchengine` (פרטי). קריאה דרך `gh api`. ההתנהגות: מעבר BFS על קישורים עם distance/maxDistance/maxUrls/maxTime, מעקב visited ב-Redis (`setIfAbsent` + מונה + סטטוס JSON), אינדוקס טקסט.
-   - לשחזר את הרעיון, לא לתרגם שורה אחר שורה.
-   - **לא להעתיק credentials או קונפיגורציה מה-README.** ה-README מכיל סיסמת Elasticsearch בטקסט גלוי: לא לצטט אותה בשום מקום.
-2. **מקור מוסכמות (קריאה בלבד):** `nemiys/wikiguard-py` (ציבורי, branch `master`). לשחזר: uv + `uv_build`, src layout, `pydantic-settings` ב-`settings.py` עם ברירות מחדל ל-localhost, ruff (line 100, E/F/I/UP/B), `pytest` עם `asyncio_mode=auto`, Dockerfile עם uv, ADR ממוספרים (Status / Context / Decision / Alternatives considered / Consequences), SQLAlchemy 2 async עם Pydantic schemas נפרדים.
-   - **לא לשחזר** את הכלל של wikiguard-py על `Co-Authored-By`: כאן הוא אסור.
-3. **ריפו חדש:** `nemiys/docs-assistant`. ליצור **פרטי** (`gh repo create nemiys/docs-assistant --private`) **רק אחרי שאישרתי**. הופכים לציבורי בסוף, אחרי בדיקת סודות.
-
-אם אין גישה לריפו פרטי: לעצור ולהגיד לי.
+1. **מקור רעיון (קריאה בלבד):** `nemiys/nemiys-searchengine` (פרטי), דרך `gh api`. לשחזר את הרעיון, לא לתרגם שורה אחר שורה. **לא להעתיק credentials או קונפיגורציה מה-README.** ה-README מכיל סיסמת Elasticsearch בטקסט גלוי: לא לצטט אותה בשום מקום.
+2. **מקור מוסכמות (קריאה בלבד):** `nemiys/wikiguard-py` (ציבורי, branch `master`). לשחזר: uv + `uv_build`, src layout, `pydantic-settings` ב-`settings.py` עם ברירות מחדל ל-localhost, ruff (line 100, E/F/I/UP/B), `pytest` עם `asyncio_mode=auto`, Dockerfile עם uv, ADR ממוספרים, SQLAlchemy 2 async עם Pydantic schemas נפרדים. **לא לשחזר** את הכלל של wikiguard-py על `Co-Authored-By`: כאן הוא אסור.
+3. **הריפו של הפרויקט:** `nemiys/docs-assistant-py` (פרטי, branch `main`).
 
 ## 3. ארכיטקטורה
 
 ```
-[Ingestion]
-URL התחלה ─► Crawler (asyncio+httpx, BFS, robots.txt, rate limit)
-          ─► ניקוי HTML ─► Chunker (לפי כותרות) ─► Embedder
-          ─► Postgres: documents, chunks(text, embedding vector, tsvector, metadata)
+corpus.yaml ─► Fetcher: ויקיטקסט API (revid, wikitext) + OData של הכנסת (Id, תוקף, פרסום אחרון)
+            ─► Parser: wikitext ─► סעיפים + תגיות "תיקון:" ─► בדיקת עדכניות
+            ─► Chunker (לפי סעיף) ─► Embedder (רב-לשוני)
+            ─► Postgres: laws, chunks(text, embedding vector, tsvector, metadata)
 
-[Query]
-שאלה ─► Embedder ─┬─► וקטורים (pgvector, top-k)  ─┐
-                  └─► טקסט (Postgres FTS, top-k) ─┴─► חיבור (RRF) ─► [rerank אופציונלי]
-      ─► בניית prompt (chunks כ"נתונים" בלבד) ─► Claude API ─► תשובה + ציטוטים [1][2]
+שאלה ─► Embedder ─┬─► וקטורים (pgvector, top-k)       ─┐
+                  └─► טקסט (Postgres FTS, top-k)      ─┴─► חיבור (RRF) ─► [rerank אופציונלי]
+      ─► prompt (chunks כ"נתונים" בלבד) ─► Claude API ─► תשובה + ציטוטים [1][2]
+      ─► כרטיס אימות (נבנה בקוד מה-DB, לא על ידי המודל)
 ```
 
-- **Postgres + pgvector** (אינדקס HNSW) ו-**Postgres FTS** (GIN על tsvector): מסד אחד לשניהם.
-- **Redis:** frontier ו-visited של ה-crawler (כמו בקורס) ותור עבודות. בלי Kafka כאן.
-- **Embeddings:** ל-Claude API אין endpoint של embeddings, לכן מודל מקומי כברירת מחדל (`sentence-transformers`, למשל `BAAI/bge-small-en-v1.5`), מאחורי interface `Embedder` שאפשר להחליף בספק חיצוני. לשמור בכל chunk את שם המודל והמימד.
+- **Postgres + pgvector** (אינדקס HNSW) ו-**Postgres FTS** (GIN על tsvector): מסד אחד לשניהם. לחיפוש טקסט בעברית אין מילון ב-Postgres, ולכן נדרש נרמול (ניקוד, תחיליות). זו נקודת החלטה.
+- **Redis:** נשאר ב-compose, אך לא בשימוש עד שיש בו צורך אמיתי (cache תשובות/embeddings, rate limit). אין BFS ואין frontier.
+- **Embeddings:** ל-Claude API אין endpoint של embeddings, ולכן מודל מקומי רב-לשוני (`sentence-transformers`, למשל BGE-M3 או multilingual-e5), מאחורי interface `Embedder`. `bge-small-en` לא מתאים לעברית. לשמור בכל chunk את שם המודל והמימד.
 - **יצירת תשובה:** Claude API דרך ה-SDK הרשמי. שם המודל ב-env (`ANSWER_MODEL`), ברירת מחדל `claude-sonnet-5-5`. מפתח ב-`ANTHROPIC_API_KEY` בלבד.
-- **אסור:** LangChain, LlamaIndex, Haystack. מותר: `httpx`, `selectolax` או `trafilatura`, `sqlalchemy`, `pgvector`, `sentence-transformers`, `anthropic`, `pydantic`.
+- **אסור:** LangChain, LlamaIndex, Haystack. מותר: `httpx`, `sqlalchemy`, `asyncpg`, `alembic`, `pgvector`, `sentence-transformers`, `anthropic`, `pydantic`.
+
+### נוהל גרסאות (מחליף את "re-crawl")
+- לכל חוק נשמרים `revid` של ויקיטקסט ו-`content_hash`. אם לא השתנו, לא מעבדים מחדש.
+- `currency_status` לכל חוק: `ok` (תיקון אחרון בטקסט תואם לפרסום אחרון בכנסת), `ahead` (הטקסט מאוחר יותר), `behind` (הכנסת מאוחרת יותר: אזהרה), `unknown`.
+- חוק עם `behind` נשאר בקורפוס, אבל כרטיס האימות מציג אזהרה.
+- הערכה רצה מול snapshot קפוא (תאריך ו-`revid` לכל חוק).
 
 ### מבנה מוצע
 ```
-src/docs_assistant/{crawler,ingest,chunking,embeddings,retrieval,generation,api,persistence}/
+src/docs_assistant/{ingest,parsing,chunking,embeddings,retrieval,generation,api,persistence}/
   settings.py  main.py
-eval/{questions.jsonl,run_eval.py}  docs/adr/  tests/  alembic/
-docker-compose.yml (תמונת pgvector/pgvector + redis)  Dockerfile  .github/workflows/ci.yml
+corpus.yaml  eval/{questions.jsonl,run_eval.py}  docs/adr/  tests/  alembic/
+docker-compose.yml (pgvector + redis)  Dockerfile  .github/workflows/ci.yml
 ```
 
 ## 4. API (מינימום)
 
 | Method | Path | תיאור |
 |---|---|---|
-| POST | `/crawl` | התחלת crawl (`start_url`, `max_pages`, `max_depth`) מחזיר `job_id` |
-| GET | `/crawl/{job_id}` | סטטוס והתקדמות |
-| GET | `/search?q=&mode=vector\|text\|hybrid&k=` | retrieval בלבד, מחזיר chunks עם ציונים (לדיבאג והערכה) |
-| POST | `/ask` | `{question}` מחזיר תשובה, ציטוטים (URL, כותרת, קטע) ומדדי latency |
+| GET | `/laws` | רשימת החוקים עם תוקף, תיקון אחרון וסטטוס עדכניות |
+| GET | `/search?q=&mode=vector\|text\|hybrid&k=&law=` | retrieval בלבד, מחזיר chunks עם ציונים (לדיבאג והערכה) |
+| POST | `/ask` | `{question}` מחזיר תשובה, ציטוטים, כרטיס אימות ומדדי latency וטוקנים |
 | GET | `/health` | בדיקת חיים |
+
+האינדוקס מופעל ב-CLI: `uv run python -m docs_assistant.ingest`.
 
 ## 5. נקודות החלטה (לעצור ולשאול אותי)
 
-1. ~~**מקור התיעוד (corpus)**~~ **סגור: תיעוד FastAPI.** נשאר לעשות: לבחור חלק (כמה מאות עמודים לכל היותר; לפי ה-sitemap יש כ-150 עמודים באנגלית, לאמת לפני ה-crawl), לוודא רישיון, ולתעד ב-ADR. ב-`robots.txt` של האתר אין `Disallow`, רק הערות content-signals בלי ערכים. לכבד את `robots.txt` ולהגביל קצב בכל מקרה.
-2. 🧠 **Chunking:** לפי כותרות (heading-aware) מול חלון קבוע. גודל ו-overlap. מה נשמר כ-metadata (URL, כותרת, נתיב כותרות).
-3. **מודל embeddings מקומי** מול ספק חיצוני (מחיר, מימד, איכות).
-4. 🧠 **חיבור תוצאות:** Reciprocal Rank Fusion מול שקלול ציונים. ערך `k`.
-5. **Reranking:** האם מוסיפים (cross-encoder), או משאירים כשיפור עתידי.
-6. 🧠 **Prompt:** מבנה, כללי ציטוט, התנהגות כשאין מספיק הקשר (לסרב ולא להמציא).
-7. **Re-crawl:** conditional GET (ETag/Last-Modified) ו-hash של תוכן כדי לא לעבד שוב עמוד שלא השתנה.
+1. **רשימת החוקים הסופית** (אחרי דוח האימות האוטומטי של שלב 2) וייחוס הרישיון.
+2. 🧠 **Chunking:** לפי סעיף, גודל, פיצול סעיפים ארוכים, מה נשמר כ-metadata.
+3. **מודל embeddings** (BGE-M3 מול multilingual-e5, מחיר, מימד, איכות), והשוואה מדודה.
+4. **חיפוש טקסט בעברית:** נרמול ותחיליות מול `pg_trgm`.
+5. 🧠 **חיבור תוצאות:** RRF מול שקלול ציונים. ערך `k`.
+6. **Reranking:** כן או לא, כניסוי מדוד.
+7. 🧠 **Prompt:** מבנה, כללי ציטוט, התנהגות כשאין מספיק הקשר (לסרב ולא להמציא).
+8. **Redis:** האם יש לו תפקיד אמיתי (cache, rate limit).
+9. **פריסה ודמו.**
 
 כל החלטה נרשמת ב-ADR קצר.
 
 ## 6. שלבים (כל שלב מסתיים ב-commit וב-checkpoint איתי)
 
-0. שלד: uv, settings, docker-compose (**פורטים שונים:** Postgres 5435, Redis 6382, אפליקציה 8002), `/health`, CI בסיסי, תבנית ADR.
-1. מודל נתונים + Alembic + הרחבת `vector` ב-Postgres.
-2. Crawler: BFS אסינכרוני, allowlist של דומיין, `max_depth`/`max_pages`, `robots.txt`, User-Agent מזוהה, עיכוב בין בקשות, visited ב-Redis.
-3. ניקוי HTML ושמירת מבנה כותרות.
-4. 🧠 Chunker + בדיקות.
-5. Embedder + אינדוקס idempotent (אותו עמוד לא נשמר פעמיים).
-6. 🧠 Retrieval: וקטורים, טקסט, חיבור. endpoint `/search`.
-7. 🧠 Generation: prompt, קריאה ל-Claude, ציטוטים, סירוב כשאין הקשר. endpoint `/ask`.
-8. 🧠 הערכה (סעיף 7).
-9. בדיקות, CI מלא, README, ADR, דמו (אפשר CLI או עמוד HTML קטן).
-
-### שלב 0 — היקף
-uv + Python 3.12 + src layout; תלויות `fastapi`, `uvicorn`, `pydantic-settings`; dev: `pytest`, `ruff`, `mypy`; `settings.py`; `/health`; `.env.example`; `docker-compose.yml`; CI בסיסי (ruff + mypy + pytest); `docs/adr/0001` כתבנית.
-**בלי** crawler / embeddings / RAG / מודל נתונים בשלב הזה. לפני כתיבת קבצים: להציג תכנית קצרה ולחכות לאישור.
+0. ✅ שלד: uv, settings, docker-compose (**פורטים:** Postgres 5435, Redis 6382, אפליקציה 8002), `/health`, CI, תבנית ADR.
+1. החלטות ומודל נתונים: עדכון `CLAUDE.md`, ADR-0002 ו-ADR-0003, Alembic, הרחבת `vector`, טבלאות `laws` ו-`chunks`.
+2. אחזור ופרסור: לקוחות ויקיטקסט ו-OData, פרסור wikitext לסעיפים ולתגיות תיקון, בדיקת עדכניות, דוח אימות לכל החוקים.
+3. 🧠 chunking, embeddings ואינדוקס אידמפוטנטי.
+4. 🧠 retrieval: וקטורים, טקסט, חיבור. `/search`.
+5. 🧠 generation: prompt, Claude, ציטוטים, סירוב כשאין הקשר, כרטיס אימות. `/ask`.
+6. 🧠 הערכה (סעיף 7).
+7. הקשחה, CI מלא, README, ADR, דמו.
 
 ## 7. הערכה (החלק החשוב ביותר)
 
-- `eval/questions.jsonl`: **20 עד 30 שאלות שאני כותב**, כל אחת עם `expected_urls` (העמודים שמכילים את התשובה). לפחות כמה שאלות עם ניסוח שונה מהתיעוד (לבדוק סמנטיקה) וכמה עם מונחים מדויקים (לבדוק FTS).
-- `run_eval.py` מחשב עבור `vector`, `text`, `hybrid`: **hit@k** (k=1,3,5) ו-**MRR**.
-- טבלת התוצאות נכנסת ל-README. אם hybrid לא עדיף, זה ממצא לגיטימי ומתועד.
-- אופציונלי: בדיקת faithfulness ידנית על דגימה (האם התשובה נתמכת בציטוטים).
+- `eval/questions.jsonl`: **50 עד 60 שאלות שאני כותב.** כל שאלה: חוק וסעיף צפויים, `answerable` (כן/לא), `expected_facts` (מספרים או מונחים לבדיקת מחרוזת). סוגים: פרפרזות (סמנטיקה), מונחים מדויקים (FTS), רב-שלביות, ו-5 עד 10 שאלות שאין להן תשובה בקורפוס (למשל דמי הבראה, שנובעים מצווי הרחבה).
+- **Retrieval:** hit@k (k=1,3,5) ו-MRR עבור `vector`, `text`, `hybrid`.
+- **Generation, בשלושה תנאים על אותן שאלות:** (א) Claude בלי retrieval, (ב) המערכת, (ג) כל החוקים ב-prompt אם הם נכנסים לחלון ההקשר. אופציונלי: חיפוש ברשת. מדדים: נכונות העובדות, ציטוט נכון, סירוב נכון על שאלות בלי תשובה, שיעור המצאות, latency ועלות.
+- בדיקה ידנית של דגימה (כ-20) ל-faithfulness. נוסף: נכונות כרטיס האימות (שם חוק וסעיף).
+- טבלת התוצאות נכנסת ל-README. אם hybrid או RAG לא עדיפים, זה ממצא לגיטימי ומתועד.
 
 ## 8. איכות ואבטחה
 
-- `pytest`: unit ל-chunker, RRF, בניית prompt. ה-crawler נבדק מול שרת מדומה (`respx`/`pytest-httpx`). אינטגרציה עם תמונת `pgvector` אמיתית.
-- `ruff` ו-`mypy` ב-GitHub Actions.
-- **תוכן שנסרק הוא לא אמין** (prompt injection): ה-chunks נכנסים ל-prompt כנתונים תחומים בבירור, והמערכת לא מבצעת הוראות מתוכם. מתועד ב-ADR.
-- בלי סודות בקוד או בהיסטוריה. `.env.example` בלבד. לסרוק היסטוריה לפני שהופכים לציבורי, ולבקש אישור.
-- crawl אחראי: לכבד `robots.txt`, להגביל קצב, לא לחרוג מהיקף ה-corpus.
-- לתעד עלות ו-latency (טוקנים וזמן לכל `/ask`).
+- `pytest`: unit ל-parser (כולל גימטריה של שנות תיקון), chunker, RRF, בניית prompt, בניית כרטיס אימות. לקוחות HTTP נבדקים מול שרת מדומה (`respx`/`pytest-httpx`) ומול fixtures שנשמרו מחוקים אמיתיים. אינטגרציה עם תמונת `pgvector` אמיתית.
+- `ruff` ו-`mypy` ב-GitHub Actions. golden retrieval קצר ב-CI, בלי מפתח API.
+- **תוכן הוויקיטקסט הוא לא אמין:** כל אחד יכול לערוך אותו (וונדליזם, טעות, פיגור). ה-chunks נכנסים ל-prompt כנתונים תחומים והמערכת לא מבצעת הוראות מתוכם (prompt injection). מתועד ב-ADR.
+- **סיכון משפטי:** תשובה שגויה עלולה לפגוע בזכויות. הצהרה קבועה, תאריך נוסח, וסירוב כשאין מקור.
+- Claude API: timeouts ו-retries עם backoff. לתעד עלות ו-latency (טוקנים וזמן לכל `/ask`).
+- fetcher אחראי: User-Agent מזוהה, קצב נמוך, `maxlag`. לא מנסים לעקוף הגנות בוטים.
+- בלי סודות בקוד או בהיסטוריה.
 
 ## 9. README (באנגלית)
 
-תיאור בשורה אחת, תרשים ארכיטקטורה, סטאק, הרצה ב-3 פקודות, דוגמת `/ask` עם ציטוטים, **טבלת תוצאות ההערכה**, טבלת החלטות עם קישור ל-ADR, מגבלות ידועות, ודמו אם קיים.
+תיאור בשורה אחת, תרשים ארכיטקטורה, סטאק, הרצה ב-3 פקודות, דוגמת `/ask` עם כרטיס אימות, **טבלת תוצאות ההערכה**, פרק "מה נכשל", טבלת החלטות עם קישור ל-ADR, מגבלות ידועות (בלי חקיקת משנה, צווי הרחבה ופסיקה; הנוסח אינו רשמי; אינו ייעוץ משפטי), ייחוס הרישיון, ודמו אם קיים.
 
 ## 10. Definition of Done
 
-- crawl, אינדוקס, `/search`, `/ask` עובדים מקצה לקצה על ה-corpus שנבחר.
+- אחזור, אינדוקס, `/search`, `/ask` עובדים מקצה לקצה על הקורפוס שנבחר, וכרטיס האימות מוביל לעמוד החוק הנכון.
 - יש תוצאות הערכה אמיתיות ב-README. CI ירוק. `docker compose up` מרים הכול.
-- אני יכול להסביר בראיון: למה hybrid, איך עובד RRF, איך נבחר גודל ה-chunk, ומה קורה כשאין תשובה.
+- אני יכול להסביר בראיון: למה hybrid, איך עובד RRF, איך נבחר גודל ה-chunk, מה קורה כשאין תשובה, איך יודעים שהנוסח עדכני, ולמה הקורפוס הזה.
 
-## 11. פרומפט פתיחה (לסשן הראשון)
+## 11. פרומפט פתיחה (לסשן חדש)
 
 ```
-קרא את ה-CLAUDE.md. התחל משלב 0.
-בדוק מה כבר יש בתיקייה, הצג תכנית קצרה לשלב 0 עם הסבר לכל רכיב (מה זה, למה, טרייד-אופס), ועצור לאישור לפני כתיבת קבצים.
+קרא את ה-CLAUDE.md. בדוק באיזה שלב אנחנו (git log, מה קיים בתיקייה), הצג תכנית קצרה לשלב הבא עם הסבר לכל רכיב (מה זה, למה, טרייד-אופס), ועצור לאישור לפני כתיבת קבצים.
 ```
