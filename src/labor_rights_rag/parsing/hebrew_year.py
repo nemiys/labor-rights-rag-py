@@ -27,6 +27,11 @@ def parse_hebrew_year(text: str) -> int | None:
     return 5000 + value if 700 <= value <= 999 else None
 
 
+def format_hebrew_year(year: int) -> str:
+    """5786 -> '5786 (2025-26)': the Hebrew year spans two Gregorian years."""
+    return f"{year} ({year - 3761}-{str(year - 3760)[-2:]})"
+
+
 def parse_amendment_years(tag: str) -> list[int]:
     """'תיקון: תשכ״ה, תשע״ד־2' -> [5725, 5774]. Unknown parts are skipped."""
     body = tag.split(":", 1)[1] if ":" in tag else tag

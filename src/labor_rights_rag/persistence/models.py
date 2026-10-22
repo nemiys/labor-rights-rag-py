@@ -40,7 +40,11 @@ class Law(Base):
     wikisource_title: Mapped[str] = mapped_column(Text)
     validity: Mapped[str | None] = mapped_column(Text)
     last_publication_date: Mapped[date | None]
+    # Hebrew year (5786) of the latest amendment the text includes, and that amendment as
+    # published in Reshumot: the verification card links to the official PDF.
     last_amendment_year: Mapped[int | None]
+    last_amendment_label: Mapped[str | None] = mapped_column(Text)
+    last_amendment_url: Mapped[str | None] = mapped_column(Text)
     # Wikisource revision id and a hash of the text: if neither changed, skip re-processing.
     revid: Mapped[int | None]
     content_hash: Mapped[str | None] = mapped_column(Text)

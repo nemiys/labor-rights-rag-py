@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     wikisource_api_url: str = "https://he.wikisource.org/w/api.php"
     # Wikimedia asks API clients to identify themselves with a way to reach the owner.
     http_user_agent: str = "labor-rights-rag/0.1 (portfolio project; nemiys@gmail.com)"
+    request_delay_seconds: float = 1.0
 
 
 settings = Settings()
