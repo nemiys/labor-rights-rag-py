@@ -1,0 +1,70 @@
+# The laws that make up the corpus. `title` is the law's name as the Knesset
+# registry writes it, without the ", <Hebrew year>-<year>" suffix. By default it is
+# also the page title in the Open Law Book (Hebrew Wikisource); set
+# `wikisource_title` when the page is named differently.
+#
+# The first six were checked by hand. The rest are candidates: `ingest` reports
+# which of them are found in both sources, and the final list is decided from that
+# report (see CLAUDE.md, decision point 1).
+
+[[law]]
+title = "חוק חופשה שנתית"
+
+[[law]]
+title = "חוק דמי מחלה"
+
+[[law]]
+title = "חוק פיצויי פיטורים"
+
+[[law]]
+title = "חוק הודעה מוקדמת לפיטורים ולהתפטרות"
+
+[[law]]
+title = "חוק שעות עבודה ומנוחה"
+
+[[law]]
+title = "חוק הגנת השכר"
+
+# Candidates (names not verified yet)
+
+[[law]]
+title = "חוק שכר מינימום"
+
+[[law]]
+title = "חוק עבודת נשים"
+
+[[law]]
+title = "חוק שכר שווה לעובדת ולעובד"
+
+[[law]]
+title = "חוק שוויון ההזדמנויות בעבודה"
+
+[[law]]
+title = "חוק עבודת הנוער"
+
+[[law]]
+title = "חוק הסכמים קיבוציים"
+
+[[law]]
+title = "חוק הודעה לעובד ולמועמד לעבודה (תנאי עבודה והליכי מיון וקבלה לעבודה)"
+
+[[law]]
+title = "חוק להגברת האכיפה של דיני העבודה"
+
+[[law]]
+title = "חוק למניעת הטרדה מינית"
+
+[[law]]
+title = "חוק העסקת עובדים על ידי קבלני כוח אדם"
+
+[[law]]
+title = "חוק עובדים זרים"
+
+[[law]]
+title = "חוק הגנה על עובדים (חשיפת עבירות ופגיעה בטוהר המידות או במינהל התקין)"
+
+[[law]]
+title = "חוק החניכות"
+
+[[law]]
+title = "חוק שירות התעסוקה"
