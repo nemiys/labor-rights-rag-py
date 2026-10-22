@@ -10,6 +10,23 @@ jobs:
   check:
     runs-on: ubuntu-latest
 
+    # Integration tests run against a real Postgres with pgvector, on the same port
+    # and credentials as local development (see settings.py defaults).
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: docs
+          POSTGRES_PASSWORD: docs
+          POSTGRES_DB: docs
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U docs -d docs"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
