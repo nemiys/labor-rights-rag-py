@@ -3,9 +3,9 @@
 # also the page title in the Open Law Book (Hebrew Wikisource); set
 # `wikisource_title` when the page is named differently.
 #
-# The first six were checked by hand. The rest are candidates: `ingest` reports
-# which of them are found in both sources, and the final list is decided from that
-# report (see CLAUDE.md, decision point 1).
+# Final list, decided on 2026-10-22 from the first ingest report: all 20 laws were
+# found in both sources, are in force, and the Knesset id on each page matches the
+# registry. A new law is added here and must pass the same report.
 
 [[law]]
 title = "חוק חופשה שנתית"
@@ -24,8 +24,6 @@ title = "חוק שעות עבודה ומנוחה"
 
 [[law]]
 title = "חוק הגנת השכר"
-
-# Candidates (names not verified yet)
 
 [[law]]
 title = "חוק שכר מינימום"

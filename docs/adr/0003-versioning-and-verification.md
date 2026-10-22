@@ -49,5 +49,11 @@ consolidated PDF can be read by a program.
 ## Consequences
 - The cross-check detects lag, not correctness: matching dates do not prove the
   text is right.
+- First full run (2026-10-22, 20 laws): 15 `ok`, 5 `ahead`, 0 `behind`. In all five
+  `ahead` laws the registry's `LatestPublicationDate` is older than an amendment the
+  text already includes (for example 2019 against a 2024-25 amendment). A likely
+  cause, not verified, is that the field does not follow indirect amendments (made
+  by another law). When the registry itself lags, the cross-check cannot detect a
+  lagging text, so `ok` is weaker evidence than it looks.
 - `ahead` and `behind` need a manual look; they are warnings, not errors.
 - A user can always reach the official page in one click.

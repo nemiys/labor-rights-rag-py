@@ -98,7 +98,7 @@ docker-compose.yml (pgvector + redis)  Dockerfile  .github/workflows/ci.yml
 
 ## 5. נקודות החלטה (לעצור ולשאול אותי)
 
-1. **רשימת החוקים הסופית** (אחרי דוח האימות האוטומטי של שלב 2) וייחוס הרישיון.
+1. ~~**רשימת החוקים הסופית**~~ **סגור (22.10.2026): כל 20 החוקים ב-`corpus.toml`.** נשאר פתוח: ייחוס הרישיון.
 2. 🧠 **Chunking:** לפי סעיף, גודל, פיצול סעיפים ארוכים, מה נשמר כ-metadata.
 3. **מודל embeddings** (BGE-M3 מול multilingual-e5, מחיר, מימד, איכות), והשוואה מדודה.
 4. **חיפוש טקסט בעברית:** נרמול ותחיליות מול `pg_trgm`.
@@ -113,8 +113,8 @@ docker-compose.yml (pgvector + redis)  Dockerfile  .github/workflows/ci.yml
 ## 6. שלבים (כל שלב מסתיים ב-commit וב-checkpoint איתי)
 
 0. ✅ שלד: uv, settings, docker-compose (**פורטים:** Postgres 5435, Redis 6382, אפליקציה 8002), `/health`, CI, תבנית ADR.
-1. החלטות ומודל נתונים: עדכון `CLAUDE.md`, ADR-0002 ו-ADR-0003, Alembic, הרחבת `vector`, טבלאות `laws` ו-`chunks`.
-2. אחזור ופרסור: לקוחות ויקיטקסט ו-OData, פרסור wikitext לסעיפים ולתגיות תיקון, בדיקת עדכניות, דוח אימות לכל החוקים.
+1. ✅ החלטות ומודל נתונים: עדכון `CLAUDE.md`, ADR-0002 ו-ADR-0003, Alembic, הרחבת `vector`, טבלאות `laws` ו-`chunks`.
+2. ✅ אחזור ופרסור: לקוחות ויקיטקסט ו-OData, פרסור wikitext לסעיפים ולתגיות תיקון, בדיקת עדכניות, דוח אימות לכל החוקים.
 3. 🧠 chunking, embeddings ואינדוקס אידמפוטנטי.
 4. 🧠 retrieval: וקטורים, טקסט, חיבור. `/search`.
 5. 🧠 generation: prompt, Claude, ציטוטים, סירוב כשאין הקשר, כרטיס אימות. `/ask`.
