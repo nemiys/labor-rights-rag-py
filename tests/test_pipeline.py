@@ -10,6 +10,7 @@ from labor_rights_rag.ingest.knesset import AmbiguousLawError, KnessetLaw
 from labor_rights_rag.ingest.pipeline import LawResult, collect, save_law
 from labor_rights_rag.ingest.report import format_report
 from labor_rights_rag.ingest.wikisource import WikisourcePage
+from labor_rights_rag.parsing.wikitext import parse_law
 from labor_rights_rag.persistence.models import Law
 
 WIKITEXT = (Path(__file__).parent / "fixtures" / "wikisource" / "annual_leave.wiki").read_text(
@@ -95,17 +96,22 @@ async def test_repealed_law_is_stored_with_a_warning() -> None:
     assert result.warnings == ["validity: בטל"]
 
 
+def _stored_result(revid: int) -> LawResult:
+    # An id that no real law has: the development database may already hold the real ones.
+    knesset = KnessetLaw(999002, "חוק לבדיקה, התשפ״ו-2026", None, date(2026, 7, 20), "תקף")
+    page = WikisourcePage("חוק לבדיקה", revid, WIKITEXT)
+    return LawResult(LAW, knesset, page, parse_law(WIKITEXT), status="ok")
+
+
 async def test_saving_twice_updates_one_row(db_session: AsyncSession) -> None:
-    first = await collect(LAW, FakeRegistry(), FakePages(revid=1))
-    second = await collect(LAW, FakeRegistry(), FakePages(revid=2))
-    third = await collect(LAW, FakeRegistry(), FakePages(revid=2))
+    first, second, third = _stored_result(1), _stored_result(2), _stored_result(2)
     now = datetime.now(UTC)
 
     for result in (first, second, third):
         await save_law(db_session, result, now)
 
-    count = await db_session.scalar(select(func.count()).where(Law.odata_id == 2000658))
-    law = (await db_session.execute(select(Law).where(Law.odata_id == 2000658))).scalar_one()
+    count = await db_session.scalar(select(func.count()).where(Law.odata_id == 999002))
+    law = (await db_session.execute(select(Law).where(Law.odata_id == 999002))).scalar_one()
     assert count == 1
     assert [first.change, second.change, third.change] == ["new", "changed", "unchanged"]
     assert law.revid == 2
