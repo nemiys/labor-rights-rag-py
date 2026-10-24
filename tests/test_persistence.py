@@ -54,10 +54,12 @@ async def test_deleting_a_law_deletes_its_chunks(db_session: AsyncSession) -> No
     db_session.add(law)
     await db_session.flush()
 
+    law_id = law.id
     await db_session.delete(law)
     await db_session.flush()
 
-    remaining = await db_session.execute(select(Chunk).where(Chunk.section_number == "1"))
+    # By the law's id: the development database may hold real chunks of section "1".
+    remaining = await db_session.execute(select(Chunk).where(Chunk.law_id == law_id))
     assert remaining.scalars().all() == []
 
 

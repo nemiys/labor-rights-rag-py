@@ -29,6 +29,10 @@ from labor_rights_rag.settings import settings
 def make_embedder(name: str) -> Embedder:
     if name == "hash":
         return HashEmbedder()
+    if name == "bge-m3":
+        from labor_rights_rag.embeddings.bge_m3 import BgeM3Embedder
+
+        return BgeM3Embedder()
     raise ValueError(f"unknown embedder: {name}")
 
 
@@ -65,8 +69,8 @@ def main() -> int:
     parser.add_argument("--report", type=Path, help="also write the report to this file")
     parser.add_argument(
         "--embedder",
-        choices=["hash"],
-        default="hash",
+        choices=["bge-m3", "hash"],
+        default="bge-m3",
         help="the model that computes the vectors (hash: a fake one, for development)",
     )
     args = parser.parse_args()

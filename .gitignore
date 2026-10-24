@@ -10,3 +10,7 @@ dist/
 build/
 .DS_Store
 postgresdata/
+
+# model weights, if a cache is ever put inside the project
+*.safetensors
+*.onnx
