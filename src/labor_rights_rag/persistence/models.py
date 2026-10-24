@@ -1,17 +1,18 @@
 """Database tables: one row per law, and one row per searchable chunk of a law.
 
-The embedding and full-text-search columns are deliberately missing. Their shape
-depends on decisions that are made later (embedding model in stage 3, Hebrew text
-normalization in stage 4), and Alembic adds them then without losing data.
+The full-text-search column is deliberately missing: its shape depends on how Hebrew
+text is normalized (decided in stage 4), and Alembic adds it then without losing data.
 """
 
 from datetime import date, datetime
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     ARRAY,
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Text,
     UniqueConstraint,
@@ -19,6 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from labor_rights_rag.embeddings.base import EMBEDDING_DIM
 from labor_rights_rag.persistence.database import Base
 
 CURRENCY_STATUSES = ("ok", "ahead", "behind", "unknown")
@@ -65,6 +67,13 @@ class Chunk(Base):
             "content_hash",
             name="uq_chunks_law_section_chunk_hash",
         ),
+        # Nearest-neighbour search by cosine distance.
+        Index(
+            "ix_chunks_embedding_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -74,9 +83,15 @@ class Chunk(Base):
     # Position inside the section when a long section is split into several chunks.
     chunk_index: Mapped[int] = mapped_column(default=0)
     heading_path: Mapped[str | None] = mapped_column(Text)
-    text: Mapped[str] = mapped_column(Text)
+    text: Mapped[str] = mapped_column(Text)  # the quote: the body only, verbatim from the law
     amended_years: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=list)
+    # Hash of the text that is embedded (header + body): if it did not change, the
+    # vector does not need to be computed again.
     content_hash: Mapped[str] = mapped_column(Text)
+    # Empty until the chunk is embedded. Vectors of different models cannot be compared,
+    # so the model's name is stored with each one.
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM))
+    embedding_model: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     law: Mapped[Law] = relationship(back_populates="chunks")
