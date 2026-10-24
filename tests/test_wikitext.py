@@ -102,10 +102,23 @@ def test_no_markup_is_left_in_any_section(annual_leave: ParsedLaw) -> None:
         assert not any(mark in section.text for mark in ("{{", "}}", "[[", "]]", "<"))
 
 
-def test_schedule_items_are_numbered_by_their_anchor(annual_leave: ParsedLaw) -> None:
+def test_schedule_items_are_merged_into_one_section(annual_leave: ParsedLaw) -> None:
     numbers = [s.number for s in annual_leave.sections]
+    schedule = next(s for s in annual_leave.sections if s.number == "תוספת")
 
-    assert "תוספת פרט 9" in numbers
+    assert not any("פרט" in number for number in numbers)
+    assert len(schedule.lines) >= 10  # the items, not just one
+    assert schedule.text.count("\n") >= 9
+
+
+def test_items_of_two_schedules_are_not_mixed() -> None:
+    law = parse_law(
+        "{{ח:סעיף*|עוגן=תוספת 1 פרט 1}}\n{{ח:ת}} א\n"
+        "{{ח:סעיף*|עוגן=תוספת 1 פרט 2}}\n{{ח:ת}} ב\n"
+        "{{ח:סעיף*|עוגן=תוספת 2 פרט 1}}\n{{ח:ת}} ג"
+    )
+
+    assert [(s.number, s.text) for s in law.sections] == [("תוספת 1", "א\nב"), ("תוספת 2", "ג")]
 
 
 def test_last_amendment_comes_with_its_official_pdf(annual_leave: ParsedLaw) -> None:

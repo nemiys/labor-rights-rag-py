@@ -150,6 +150,32 @@ def render(text: str) -> str:
 
 
 _BODY_LINE = re.compile(r"^\{\{ח:ת+[|}]")
+# The page gives every item of a schedule its own anchor, "תוספת 2 פרט 3".
+_SCHEDULE_ITEM = re.compile(r"^(תוספת.*?) פרט ")
+
+
+def _merge_schedule_items(sections: list[Section]) -> list[Section]:
+    """One section per schedule instead of one per item: an item such as "חיפה" means
+    nothing alone, and a schedule is what a reader cites."""
+    merged: list[Section] = []
+    for section in sections:
+        item = _SCHEDULE_ITEM.match(section.number)
+        if item is None:
+            merged.append(section)
+        elif merged and merged[-1].number == item.group(1):
+            merged[-1].lines += section.lines
+            merged[-1].amended_years = sorted({*merged[-1].amended_years, *section.amended_years})
+        else:
+            merged.append(
+                Section(
+                    item.group(1),
+                    section.title,
+                    section.chapter,
+                    section.amended_years,
+                    list(section.lines),
+                )
+            )
+    return merged
 
 
 def parse_law(wikitext: str) -> ParsedLaw:
@@ -211,4 +237,5 @@ def parse_law(wikitext: str) -> ParsedLaw:
         elif first.name in ("ח:חתימות", "ח:סוף"):
             current = None
 
-    return ParsedLaw(knesset_id, [s for s in sections if s.lines], amendments)
+    kept = _merge_schedule_items([s for s in sections if s.lines])
+    return ParsedLaw(knesset_id, kept, amendments)

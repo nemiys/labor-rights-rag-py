@@ -121,6 +121,16 @@ def test_list_of_definitions_is_cut_between_lines() -> None:
     assert all("בחוק זה –" in c.embed_text for c in chunks)
 
 
+def test_flat_list_is_cut_between_lines_without_repeating_any_item() -> None:
+    items = [Line(1, False, f"פריט {i} {WORDS}") for i in range(6)]
+
+    chunks = chunk_section(LAW, _section(items), max_chars=1100)
+
+    assert len(chunks) > 1
+    assert all(c.embed_text == f"{c.heading_path}\n{c.text}" for c in chunks)
+    assert "\n".join(c.text for c in chunks) == _section(items).text
+
+
 def test_a_single_line_over_the_limit_stays_whole() -> None:
     huge = "(א) " + "מילה " * 600
     chunks = chunk_section(LAW, _section([Line(2, True, huge), sub("קצר")]), max_chars=1500)

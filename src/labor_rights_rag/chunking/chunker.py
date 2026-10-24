@@ -65,6 +65,11 @@ def group_blocks(blocks: list[list[Line]], max_chars: int) -> list[list[Line]]:
     return groups
 
 
+def has_deeper_structure(lines: Sequence[Line], level: int) -> bool:
+    """True when the first line leads labeled lines of a deeper level."""
+    return level < LAST_LEVEL and any(line.labeled and line.level > level for line in lines[1:])
+
+
 def split_lines(
     lines: Sequence[Line],
     max_chars: int,
@@ -75,12 +80,13 @@ def split_lines(
     if size(lines) <= max_chars or len(lines) == 1:
         return [Part(list(context), list(lines))]
 
-    if level > LAST_LEVEL:
-        blocks = [[line] for line in lines]
-    else:
-        blocks = split_into_blocks(lines, level)
+    blocks = [[line] for line in lines] if level > LAST_LEVEL else split_into_blocks(lines, level)
     if len(blocks) == 1:
-        return split_inside(lines, max_chars, context, level)
+        if has_deeper_structure(lines, level):
+            return split_inside(lines, max_chars, context, level)
+        # A flat list (a schedule, definitions): there is no parent to repeat, so just
+        # cut between lines.
+        blocks = [[line] for line in lines]
 
     parts: list[Part] = []
     for group in group_blocks(blocks, max_chars):
