@@ -11,10 +11,26 @@ A chunk is the unit that is embedded, retrieved and quoted. Measured on the 20 l
 verification card cites sections.
 
 ## Decision
-- **One chunk per section.** A section longer than **1,500 characters** is split at
-  its top-level subsections, `(א)`, `(ב)`, ... Nested items such as `(1)` never start
-  a new chunk. Subsections are grouped in order up to the limit. A single subsection
-  longer than the limit stays whole: it is not cut mid-sentence.
+- **One chunk per section.** A section up to **1,500 characters** is one chunk. The
+  limit is a ceiling, not a target size: chunks vary from tens of characters to 1,500.
+  It is a starting value, derived from the length distribution above; its effect on
+  retrieval is measured in the evaluation (stage 6).
+- **Longer sections are split by the structure the page gives, not guessed from the
+  text.** The Open Law Book marks every body line with a template whose name carries
+  its level (`ח:תת` subsection, `ח:תתת` paragraph, `ח:תתתת` sub-paragraph). The parser
+  keeps that level. Matching `(א)` in the text does not work: the same letter appears
+  at several levels, and amendments add `(ג1)`-style subsections.
+  1. Cut between subsections (level 2) and group neighbours up to the limit.
+  2. A group still over the limit is cut at the next level, and each part starts with
+     the lead line of its parent (for example "(ג) עובדת רשאית להיעדר מעבודתה:").
+  3. A line without a label continues the line before it and is never a cut point
+     (a definition is an item of its own).
+  4. Fallback when there are no levels (a list of definitions): cut between lines. A
+     single line over the limit stays whole and is reported as an exception.
+- **Checked at scale, not by reading.** Rules that must hold for every section of every
+  law (no line lost, order kept, size within the limit except reported exceptions,
+  every part has its header) are tests over the whole corpus. The ingest report shows
+  the distribution of chunk sizes and lists the exceptions.
 - **Two texts per chunk.**
   - `text`: the section body only. It is what the verification card quotes, verbatim.
   - `embed_text`: a header (law name, chapter if any, section number and title)

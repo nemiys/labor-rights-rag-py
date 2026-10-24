@@ -23,17 +23,26 @@ class Amendment:
     url: str  # the amendment as published in Reshumot (official PDF)
 
 
+@dataclass(frozen=True)
+class Line:
+    """One line of a section body, with the structure the page gives it."""
+
+    level: int  # 2 = subsection "(א)", 3 = paragraph "(1)", 4 = sub-paragraph; 0 = plain text
+    labeled: bool  # False for a line that continues the one before it
+    text: str
+
+
 @dataclass
 class Section:
     number: str
     title: str
     chapter: str | None
     amended_years: list[int]
-    lines: list[str] = field(default_factory=list)
+    lines: list[Line] = field(default_factory=list)
 
     @property
     def text(self) -> str:
-        return "\n".join(self.lines)
+        return "\n".join(line.text for line in self.lines)
 
 
 @dataclass
@@ -169,7 +178,7 @@ def parse_law(wikitext: str) -> ParsedLaw:
 
         if first is None:
             if current is not None and (text := render(line)):
-                current.lines.append(text)
+                current.lines.append(Line(0, False, text))
             continue
 
         if first.name.startswith("ח:קטע"):
@@ -191,7 +200,13 @@ def parse_law(wikitext: str) -> ParsedLaw:
             # A label with no words is an item whose text was only an editor's note,
             # such as a deleted paragraph: nothing to keep.
             if body:
-                current.lines.append(f"{label} {body}".strip())
+                # The number of "ת" in the template's name is the level. A definition has
+                # no label but is an item of its own; any other unlabeled line continues
+                # the one before it.
+                labeled = bool(label) or first.named.get("סוג") == "הגדרה"
+                current.lines.append(
+                    Line(first.name.count("ת"), labeled, f"{label} {body}".strip())
+                )
         elif first.name in ("ח:חתימות", "ח:סוף"):
             current = None
 

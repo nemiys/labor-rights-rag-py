@@ -61,7 +61,34 @@ def test_section_has_title_chapter_amendments_and_text(annual_leave: ParsedLaw) 
 def test_item_left_with_only_a_label_is_dropped(annual_leave: ParsedLaw) -> None:
     section = next(s for s in annual_leave.sections if s.number == "3")
 
-    assert "(2)" not in section.lines
+    assert "(2)" not in [line.text for line in section.lines]
+
+
+def test_each_line_keeps_the_level_the_page_gives_it() -> None:
+    law = parse_law(
+        "{{ח:סעיף|2|כותרת}}\n"
+        "{{ח:תת|(א)}} סעיף קטן –\n"
+        "{{ח:תתת|(1)}} פסקה;\n"
+        "{{ח:תתתת|(ב)}} פסקת משנה."
+    )
+
+    assert [(line.level, line.labeled) for line in law.sections[0].lines] == [
+        (2, True),
+        (3, True),
+        (4, True),
+    ]
+
+
+def test_line_without_a_label_continues_the_one_before() -> None:
+    law = parse_law("{{ח:סעיף|2|כותרת}}\n{{ח:תת|(א)}} סעיף קטן.\n{{ח:תת}} אולם המשך.")
+
+    assert [line.labeled for line in law.sections[0].lines] == [True, False]
+
+
+def test_definition_is_its_own_item_though_it_has_no_label() -> None:
+    law = parse_law("{{ח:סעיף|1|הגדרות}}\n{{ח:תתת|סוג=הגדרה}} ”מונח“ – פירוש;")
+
+    assert law.sections[0].lines[0].labeled
 
 
 def test_no_markup_is_left_in_any_section(annual_leave: ParsedLaw) -> None:
