@@ -44,6 +44,11 @@ strict = true
 files = ["src", "tests"]
 plugins = ["pydantic.mypy"]
 
+# The optional extra (torch) is not installed in CI; the model is imported lazily.
+[[tool.mypy.overrides]]
+module = ["sentence_transformers", "sentence_transformers.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
