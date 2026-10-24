@@ -1,7 +1,13 @@
 """A Markdown report of an ingest run: what was found, what was stored, what to check."""
 
-from labor_rights_rag.ingest.pipeline import LawResult
+from labor_rights_rag.ingest.pipeline import IndexStats, LawResult
 from labor_rights_rag.parsing.hebrew_year import format_hebrew_year
+
+
+def _chunks(index: IndexStats | None) -> str:
+    if index is None:
+        return "-"
+    return f"+{index.added} ={index.kept} -{index.removed} (vectors: {index.embedded})"
 
 
 def format_report(results: list[LawResult]) -> str:
@@ -12,8 +18,8 @@ def format_report(results: list[LawResult]) -> str:
         f"Laws in corpus: {len(results)}. Stored: {stored}. Not stored: {len(results) - stored}.",
         "",
         "| Law | Knesset id | Last amendment (text) | Last publication (Knesset) "
-        "| Status | Sections | Longest section | Change | Notes |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| Status | Sections | Longest section | Change | Chunks | Notes |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in results:
         sections = r.parsed.sections if r.parsed else []
@@ -31,6 +37,7 @@ def format_report(results: list[LawResult]) -> str:
                     str(len(sections)),
                     str(max((len(s.text) for s in sections), default=0)),
                     r.change or "-",
+                    _chunks(r.index),
                     notes or "-",
                 ]
             )

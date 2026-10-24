@@ -31,6 +31,16 @@ class PageSource(Protocol):
 
 
 @dataclass
+class IndexStats:
+    """What indexing did to the chunks of one law."""
+
+    added: int = 0  # new chunks
+    kept: int = 0  # unchanged, already embedded by the current model: not touched
+    removed: int = 0  # no longer in the law
+    embedded: int = 0  # vectors computed in this run
+
+
+@dataclass
 class LawResult:
     corpus: CorpusLaw
     knesset: KnessetLaw | None = None
@@ -40,6 +50,7 @@ class LawResult:
     issues: list[str] = field(default_factory=list)  # problems that block storing the law
     warnings: list[str] = field(default_factory=list)  # stored, but worth a look
     change: str = ""  # "new", "changed" or "unchanged", filled in when saved
+    index: IndexStats | None = None  # filled in when the chunks are indexed
 
     @property
     def storable(self) -> bool:

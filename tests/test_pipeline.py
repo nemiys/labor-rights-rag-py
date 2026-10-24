@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from labor_rights_rag.ingest.corpus import CorpusLaw
 from labor_rights_rag.ingest.knesset import AmbiguousLawError, KnessetLaw
-from labor_rights_rag.ingest.pipeline import LawResult, collect, save_law
+from labor_rights_rag.ingest.pipeline import IndexStats, LawResult, collect, save_law
 from labor_rights_rag.ingest.report import format_report
 from labor_rights_rag.ingest.wikisource import WikisourcePage
 from labor_rights_rag.parsing.wikitext import parse_law
@@ -128,3 +128,9 @@ def test_report_lists_every_law_and_its_status() -> None:
     assert "Laws in corpus: 2." in report
     assert "| חוק ב | - |" in report
     assert "not found in the Knesset registry" in report
+
+
+def test_report_shows_what_indexing_did_to_the_chunks() -> None:
+    indexed = LawResult(LAW, KNESSET, status="ok", index=IndexStats(added=3, kept=5, embedded=3))
+
+    assert "+3 =5 -0 (vectors: 3)" in format_report([indexed])

@@ -11,17 +11,28 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
+from sqlalchemy import select
 
+from labor_rights_rag.embeddings.base import Embedder
+from labor_rights_rag.embeddings.fake import HashEmbedder
 from labor_rights_rag.ingest.corpus import load_corpus
+from labor_rights_rag.ingest.indexing import index_law
 from labor_rights_rag.ingest.knesset import KnessetClient
 from labor_rights_rag.ingest.pipeline import LawResult, collect, save_law
 from labor_rights_rag.ingest.report import format_report
 from labor_rights_rag.ingest.wikisource import WikisourceClient
 from labor_rights_rag.persistence.database import engine, session_factory
+from labor_rights_rag.persistence.models import Law
 from labor_rights_rag.settings import settings
 
 
-async def run() -> list[LawResult]:
+def make_embedder(name: str) -> Embedder:
+    if name == "hash":
+        return HashEmbedder()
+    raise ValueError(f"unknown embedder: {name}")
+
+
+async def run(embedder: Embedder) -> list[LawResult]:
     corpus = load_corpus(Path(settings.corpus_path))
     results: list[LawResult] = []
     headers = {"User-Agent": settings.http_user_agent}
@@ -37,6 +48,13 @@ async def run() -> list[LawResult]:
         for result in results:
             if result.storable:
                 await save_law(session, result, fetched_at)
+                assert result.knesset and result.parsed
+                law = await session.scalar(
+                    select(Law).where(Law.odata_id == result.knesset.odata_id)
+                )
+                assert law
+                result.index = await index_law(session, law, result.parsed, embedder)
+                await session.commit()  # a law at a time: a failure keeps what is done
         await session.commit()
     await engine.dispose()
     return results
@@ -45,9 +63,15 @@ async def run() -> list[LawResult]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Fetch and store the laws in corpus.toml")
     parser.add_argument("--report", type=Path, help="also write the report to this file")
+    parser.add_argument(
+        "--embedder",
+        choices=["hash"],
+        default="hash",
+        help="the model that computes the vectors (hash: a fake one, for development)",
+    )
     args = parser.parse_args()
 
-    results = asyncio.run(run())
+    results = asyncio.run(run(make_embedder(args.embedder)))
     report = format_report(results)
     if args.report:
         args.report.write_text(report, encoding="utf-8")
