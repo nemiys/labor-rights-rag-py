@@ -195,7 +195,8 @@ def parse_law(wikitext: str) -> ParsedLaw:
             )
             sections.append(current)
         elif _BODY_LINE.match(line) and current is not None:
-            label = render(_arg(first, 0))
+            # "{{ח:תת|(ב1)|(1)}}" is a subsection and its first paragraph on one line.
+            label = " ".join(filter(None, (render(arg) for arg in first.args)))
             body = render(line[templates[0][1] :])
             # A label with no words is an item whose text was only an editor's note,
             # such as a deleted paragraph: nothing to keep.

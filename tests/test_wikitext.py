@@ -79,6 +79,12 @@ def test_each_line_keeps_the_level_the_page_gives_it() -> None:
     ]
 
 
+def test_a_line_with_two_labels_keeps_both() -> None:
+    law = parse_law("{{ח:סעיף|2|כותרת}}\n{{ח:תת|(ב1)|(1)}} עובד רשאי להיעדר.")
+
+    assert law.sections[0].lines[0].text == "(ב1) (1) עובד רשאי להיעדר."
+
+
 def test_line_without_a_label_continues_the_one_before() -> None:
     law = parse_law("{{ח:סעיף|2|כותרת}}\n{{ח:תת|(א)}} סעיף קטן.\n{{ח:תת}} אולם המשך.")
 
