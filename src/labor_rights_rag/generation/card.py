@@ -22,6 +22,7 @@ WIKISOURCE_URL = "https://he.wikisource.org/wiki/{title}"
 
 class VerificationCard(BaseModel):
     law: str
+    law_id: int  # the Knesset id of the law
     section: str
     part: int
     quote: str  # the words of the law as stored: not what the model wrote
@@ -39,6 +40,7 @@ class VerificationCard(BaseModel):
 def build_card(hit: Hit, law: Law) -> VerificationCard:
     return VerificationCard(
         law=law.name,
+        law_id=law.odata_id,
         section=hit.section_number,
         part=hit.chunk_index,
         quote=hit.text,
