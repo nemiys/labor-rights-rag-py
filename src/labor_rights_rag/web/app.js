@@ -86,10 +86,12 @@ function technical(data) {
 function show(data) {
   result.replaceChildren();
   if (data.status === "answered") {
+    result.append(el("h2", { text: "התשובה" }));
     result.append(el("div", { class: "answer" }, ...answerNodes(data.answer)));
     result.append(el("h2", { text: "המקורות, לבדיקה שלכם" }));
     for (const citation of data.citations) result.append(card(citation));
   } else {
+    result.append(el("h2", { text: "לא נמצאה תשובה" }));
     result.append(el("div", { class: "refusal", text: data.answer }));
   }
   result.append(el("p", { class: "disclaimer", text: data.disclaimer }));
@@ -146,6 +148,16 @@ for (const chip of document.querySelectorAll(".chip")) {
   });
 }
 
+// How current a text is. "ahead" means the text holds an amendment that the Knesset registry
+// does not list yet: it cannot be checked against the registry, but it is not the dangerous
+// case. The dangerous one is "behind": the registry lists something newer than the text.
+const CURRENCY_BADGES = {
+  ok: ["הנוסח מעודכן", "ok"],
+  ahead: ["הנוסח חדש יותר מרישום הכנסת", "note"],
+  behind: ["ייתכן שהנוסח ישן", "attention"],
+  unknown: ["לא ניתן לאמת את העדכניות", "note"],
+};
+
 // The list of laws, with how current each text is.
 async function loadLaws() {
   const list = document.getElementById("laws");
@@ -153,15 +165,10 @@ async function loadLaws() {
     const response = await fetch("/laws");
     if (!response.ok) return;
     for (const law of await response.json()) {
-      const current = law.currency_status === "ok";
+      const [label, kind] = CURRENCY_BADGES[law.currency_status] || CURRENCY_BADGES.unknown;
       const item = el("li");
       const title = el("div", { text: law.name });
-      title.append(
-        el("span", {
-          class: "badge " + (current ? "ok" : "attention"),
-          text: current ? "הנוסח מעודכן" : "כדאי לוודא את הנוסח",
-        })
-      );
+      title.append(el("span", { class: "badge " + kind, text: label }));
       item.append(title);
       const parts = [];
       if (law.last_amendment) parts.push("התיקון האחרון בנוסח: " + law.last_amendment);

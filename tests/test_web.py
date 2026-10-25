@@ -72,3 +72,18 @@ def test_a_question_in_the_address_only_fills_the_box_and_asks() -> None:
 
     assert 'get("q")' in script
     assert "input.value = prefilled" in script
+
+
+def test_a_text_newer_than_the_registry_is_not_shown_as_a_danger() -> None:
+    script = (WEB / "app.js").read_text(encoding="utf-8")
+
+    # Only a text that may be older than the registry's is red; "ahead" is yellow.
+    assert 'ahead: ["הנוסח חדש יותר מרישום הכנסת", "note"]' in script
+    assert 'behind: ["ייתכן שהנוסח ישן", "attention"]' in script
+
+
+def test_the_answer_and_the_refusal_have_a_heading() -> None:
+    script = (WEB / "app.js").read_text(encoding="utf-8")
+
+    assert 'text: "התשובה"' in script
+    assert 'text: "לא נמצאה תשובה"' in script

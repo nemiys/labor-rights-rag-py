@@ -195,6 +195,7 @@ summary { cursor: pointer; font-weight: 600; }
   font-size: 0.8rem;
 }
 .badge.ok { color: var(--ok); border-color: var(--ok); }
+.badge.note { color: var(--warn-line); border-color: var(--warn-line); }
 .badge.attention { color: var(--bad); border-color: var(--bad); }
 .hint { color: var(--muted); font-size: 0.9rem; }
 
