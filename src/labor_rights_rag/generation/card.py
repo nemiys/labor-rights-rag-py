@@ -20,6 +20,14 @@ KNESSET_LAW_URL = (
 WIKISOURCE_URL = "https://he.wikisource.org/wiki/{title}"
 
 
+def knesset_url(odata_id: int) -> str:
+    return KNESSET_LAW_URL.format(odata_id=odata_id)
+
+
+def wikisource_url(title: str) -> str:
+    return WIKISOURCE_URL.format(title=quote(title.replace(" ", "_")))
+
+
 class VerificationCard(BaseModel):
     law: str
     law_id: int  # the Knesset id of the law
@@ -47,8 +55,8 @@ def build_card(hit: Hit, law: Law) -> VerificationCard:
         text_as_of=law.fetched_at.date() if law.fetched_at else None,
         currency_status=law.currency_status,
         currency_warning=CURRENCY_WARNINGS.get(law.currency_status),
-        knesset_url=KNESSET_LAW_URL.format(odata_id=law.odata_id),
-        wikisource_url=WIKISOURCE_URL.format(title=quote(law.wikisource_title.replace(" ", "_"))),
+        knesset_url=knesset_url(law.odata_id),
+        wikisource_url=wikisource_url(law.wikisource_title),
         last_amendment=law.last_amendment_label,
         last_amendment_url=law.last_amendment_url,
         search_hint=f"בעמוד החוק, חפשו את סעיף {hit.section_number}.",

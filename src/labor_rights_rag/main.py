@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from labor_rights_rag.api import ask, search
+from labor_rights_rag.api import ask, laws, search
 from labor_rights_rag.api.dependencies import get_embedder
 from labor_rights_rag.persistence.database import session_factory
 from labor_rights_rag.retrieval.bm25 import load_bm25_index
@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="labor-rights-rag", lifespan=lifespan)
     app.include_router(search.router)
     app.include_router(ask.router)
+    app.include_router(laws.router)
 
     @app.get("/health")
     async def health() -> dict[str, str]:
