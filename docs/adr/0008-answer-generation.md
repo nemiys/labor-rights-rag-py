@@ -66,6 +66,19 @@ be good enough for a task that looks simple.
   information must not be sent. Questions about dismissal or harassment can contain it. A
   public service needs a paid tier, or a model that runs on our own machine.
 
+## What the dev split showed about generation (2026-10-25, `gemini-3.5-flash-lite`)
+- Two runs of the same 39 questions with nothing changed: 24 and 26 of the 32 answerable
+  questions answered. The free model is not deterministic even at temperature 0, so one run
+  is known to within about two questions, and results are reported as a range.
+- In both runs all 7 unanswerable questions were refused: no invented answer.
+- Of the 8 to 10 failures per run, 5 are questions whose section the search did not bring (the
+  model refused, which is safe), 2 or 3 are refusals with the section in hand, and 2 are
+  partial or off-target answers (an answer to a neighbouring question, or a citation of a
+  section that points to the right one).
+- **A bug found by reading the answers:** the model wrote the refusal marker after a partial
+  answer and the person would have seen `[NO_ANSWER]`. The parser now removes it, and the
+  prompt says to use it only when no part is answered.
+
 ## Consequences
 - The prompt is written in English, which models follow more reliably, and requires a
   Hebrew answer.

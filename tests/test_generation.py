@@ -80,9 +80,12 @@ def test_an_empty_reply_counts_as_no_answer() -> None:
 
 
 def test_the_marker_in_the_middle_of_an_answer_is_not_a_refusal() -> None:
-    parsed = parse_answer(f"מגיעים ימים [1]. {NO_ANSWER_MARKER}", source_count=3)
+    parsed = parse_answer(f"מגיעים ימים [1]. חלק אחר חסר. {NO_ANSWER_MARKER}", source_count=3)
 
     assert not parsed.refused
+    assert NO_ANSWER_MARKER not in parsed.text  # the person must not see the signal
+    assert parsed.text == "מגיעים ימים [1]. חלק אחר חסר."
+    assert parsed.citations == [1]
 
 
 def test_an_answer_without_citations_has_none() -> None:

@@ -44,3 +44,10 @@ say why in the commit.
 The ground truth is one reader's judgment of which sections answer a question. Where two
 sections could answer it, both are listed and a hit on either counts. A citation shows that
 the section exists, not that it supports the claim: that is checked by hand on a sample.
+
+## Results
+
+`results/` holds every run, named by date and split. The baseline is the first retrieval run.
+A model run is not repeatable to the question: the same 39 dev questions gave 24 and 26 answers
+in two runs, so a single number is reported with its range, and a change is real only if it is
+larger than that. `results/*-answers.md` has the full answers, to read by hand.

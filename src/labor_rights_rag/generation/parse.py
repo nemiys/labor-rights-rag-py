@@ -20,6 +20,10 @@ class ParsedAnswer:
 def parse_answer(text: str, source_count: int) -> ParsedAnswer:
     stripped = text.strip()
     refused = not stripped or stripped.startswith(NO_ANSWER_MARKER)
+    if not refused:
+        # A model may write the marker after a partial answer. It is a signal for us and the
+        # person must not see it.
+        stripped = stripped.replace(NO_ANSWER_MARKER, "").strip()
 
     citations: list[int] = []
     invalid: list[int] = []
