@@ -1,8 +1,11 @@
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from labor_rights_rag.api import ask, laws, search
 from labor_rights_rag.api.dependencies import get_embedder
@@ -21,11 +24,25 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
+WEB = Path(__file__).parent / "web"
+# The page loads only its own files and talks only to its own server. No inline scripts.
+PAGE_POLICY = (
+    "default-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; "
+    "form-action 'none'; frame-ancestors 'none'"
+)
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="labor-rights-rag", lifespan=lifespan)
     app.include_router(search.router)
     app.include_router(ask.router)
     app.include_router(laws.router)
+    app.mount("/static", StaticFiles(directory=WEB), name="static")
+
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    async def home() -> HTMLResponse:
+        page = (WEB / "index.html").read_text(encoding="utf-8")
+        return HTMLResponse(page, headers={"Content-Security-Policy": PAGE_POLICY})
 
     @app.get("/health")
     async def health() -> dict[str, str]:

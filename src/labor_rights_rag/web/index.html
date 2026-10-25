@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>זכויות עובדים בחוק</title>
+  <meta name="description" content="שאלות על זכויות עבודה בישראל, עם תשובה שמבוססת על נוסח החוק וכרטיס אימות מול המקור.">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>זכויות עובדים בחוק</h1>
+      <p class="lead">שאלו על זכויות עבודה בישראל. התשובה נכתבת רק מתוך נוסח החוק, וליד כל טענה מופיע הציטוט המקורי כדי שתוכלו לבדוק אותו בעצמכם.</p>
+      <p class="notice"><strong>אינו ייעוץ משפטי.</strong> הנוסח המחייב של החוק מתפרסם ברשומות.</p>
+      <p class="notice warn-box"><strong>אל תכתבו פרטים אישיים.</strong> השאלה נשלחת לשירות חיצוני לצורך כתיבת התשובה.</p>
+    </header>
+
+    <form id="ask-form" autocomplete="off">
+      <label for="question">השאלה שלכם</label>
+      <textarea id="question" name="question" rows="3" maxlength="1000" required
+                placeholder="למשל: כמה ימי חופש מגיעים לי בשנה?"></textarea>
+      <div class="actions">
+        <button id="submit" type="submit">שאלו</button>
+        <span id="status" role="status" aria-live="polite"></span>
+      </div>
+      <div class="examples">
+        <span>לדוגמה:</span>
+        <button type="button" class="chip">כמה ימי חופש מגיעים לי בשנה?</button>
+        <button type="button" class="chip">מתי צריך לשלם לי את דמי החופשה?</button>
+        <button type="button" class="chip">פיטרו אותי בלי הודעה מראש. מה מגיע לי?</button>
+        <button type="button" class="chip">כמה ימי הבראה מגיעים לי בשנה?</button>
+      </div>
+    </form>
+
+    <section id="result" aria-live="polite"></section>
+
+    <details id="laws-box">
+      <summary>החוקים שבמערכת</summary>
+      <p class="hint">אלה העשרים חוקי העבודה שהמערכת מכירה. לא נכללים תקנות, צווי הרחבה ופסיקה.</p>
+      <ul id="laws"></ul>
+    </details>
+
+    <footer>
+      <p>הנוסח לקוח מ<a href="https://he.wikisource.org/wiki/%D7%A1%D7%A4%D7%A8_%D7%94%D7%97%D7%95%D7%A7%D7%99%D7%9D_%D7%94%D7%A4%D7%AA%D7%95%D7%97" target="_blank" rel="noopener noreferrer">ספר החוקים הפתוח</a> ומאומת מול מאגר החקיקה הלאומי של הכנסת. הוא אינו הנוסח הרשמי, ויכול לפגר אחרי תיקון אחרון.</p>
+    </footer>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
