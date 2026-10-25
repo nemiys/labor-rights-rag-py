@@ -49,6 +49,23 @@ be good enough for a task that looks simple.
   in code, logs or errors.
 - Every answer records tokens, seconds and, for a model in the price list, the cost.
 
+## First live trial (2026-10-26, the free tier of Google's Gemini API)
+- The whole chain worked with `gemini-3.5-flash-lite`, 4 to 7 seconds a question: an answer
+  with a correct citation, a correct refusal ("דמי הבראה", a topic the corpus does not
+  cover, which the score threshold let through), and a second correct answer. The numbers
+  in the first answer match section 3 of the Annual Leave Law word for word. Three
+  questions are a check that it works, not an evaluation.
+- `gemini-3.8-flash` (the model in Google's examples) answered `503`, "high demand", on
+  every call, and a first call got `403` once. Two older Flash models are "no longer
+  available to new users". The models a key can use change, so the model name is a
+  setting and not code, and the client now shows the server's reason in the error.
+- Some services leave hidden thinking out of `completion_tokens` but count it in
+  `total_tokens`. The output size is the larger of the two.
+- **The free tier cannot serve real users.** Google's terms for unpaid use say the content
+  is used to improve its products, human reviewers may read it, and sensitive or personal
+  information must not be sent. Questions about dismissal or harassment can contain it. A
+  public service needs a paid tier, or a model that runs on our own machine.
+
 ## Consequences
 - The prompt is written in English, which models follow more reliably, and requires a
   Hebrew answer.

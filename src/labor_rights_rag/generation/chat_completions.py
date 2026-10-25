@@ -27,7 +27,8 @@ class ChatCompletionsAnswerer:
     ) -> None:
         self.name = model
         self._url = base_url.rstrip("/") + "/chat/completions"
-        # Kept only to send; never printed or put in an error message.
+        # Kept only to send; never printed. It is removed from error messages below.
+        self._key = api_key
         self._headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
         self._max_tokens = max_tokens
         self._client = client or httpx.AsyncClient(timeout=120.0)
@@ -49,16 +50,24 @@ class ChatCompletionsAnswerer:
             lambda: self._client.post(self._url, json=payload, headers=self._headers),
             self._retry_delays,
         )
-        response.raise_for_status()
         seconds = time.perf_counter() - started
+        if response.is_error:
+            # Say why the server refused: "403" alone does not tell a wrong key from a busy model.
+            detail = response.text.replace(self._key, "***") if self._key else response.text
+            raise httpx.HTTPStatusError(
+                f"{response.status_code} from {self._url}: {detail[:300]}",
+                request=response.request,
+                response=response,
+            )
 
         body = response.json()
         text = body["choices"][0]["message"].get("content") or ""
         usage = body.get("usage") or {}
-        return ModelResponse(
-            text,
-            self.name,
-            int(usage.get("prompt_tokens", 0)),
+        prompt_tokens = int(usage.get("prompt_tokens", 0))
+        # Some services keep the model's hidden thinking out of completion_tokens but count it
+        # in total_tokens, and bill it. The larger of the two is the honest output size.
+        output_tokens = max(
             int(usage.get("completion_tokens", 0)),
-            seconds,
+            int(usage.get("total_tokens", 0)) - prompt_tokens,
         )
+        return ModelResponse(text, self.name, prompt_tokens, output_tokens, seconds)

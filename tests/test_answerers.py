@@ -209,3 +209,27 @@ def test_cost_follows_the_price_list() -> None:
 def test_a_model_that_is_not_in_the_price_list_has_no_cost() -> None:
     assert estimate_cost_usd("some-free-model", 1200, 300) is None
     assert estimate_cost_usd(None, 0, 0) is None
+
+
+@respx.mock
+async def test_chat_error_says_why_the_server_refused_and_hides_the_key() -> None:
+    body = {"error": {"message": "model is busy, key secret-key was seen"}}
+    respx.post(URL).respond(503, json=body)
+    answerer = ChatCompletionsAnswerer(BASE, "secret-key", "m", retry_delays=(0,))
+
+    with pytest.raises(httpx.HTTPStatusError) as error:
+        await answerer.answer("שאלה", HITS)
+
+    assert "model is busy" in str(error.value)
+    assert "secret-key" not in str(error.value)
+    assert "503" in str(error.value)
+
+
+@respx.mock
+async def test_chat_counts_hidden_thinking_tokens_as_output() -> None:
+    usage = {"prompt_tokens": 8, "completion_tokens": 0, "total_tokens": 54}
+    respx.post(URL).respond(json={"choices": [{"message": {"content": "ok"}}], "usage": usage})
+
+    response = await ChatCompletionsAnswerer(BASE, None, "m").answer("שאלה", HITS)
+
+    assert (response.input_tokens, response.output_tokens) == (8, 46)
