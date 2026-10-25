@@ -237,3 +237,16 @@ async def test_ask_endpoint_rejects_a_bad_question(
     response = await client.post("/ask", json=body)
 
     assert response.status_code == 422
+
+
+async def test_the_cost_of_a_priced_model_is_recorded_and_a_free_one_has_none(
+    seeded: AsyncSession,
+) -> None:
+    class Priced(ScriptedAnswerer):
+        name = "claude-sonnet-5-5"
+
+    free = await run(seeded, ScriptedAnswerer("טענה [1]."))
+    priced = await run(seeded, Priced("טענה [1]."))
+
+    assert free.cost_usd is None
+    assert priced.cost_usd == pytest.approx((10 * 2 + 5 * 10) / 1_000_000)

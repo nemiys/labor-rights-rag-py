@@ -11,6 +11,7 @@ from labor_rights_rag.generation.base import Answerer
 from labor_rights_rag.generation.card import VerificationCard, build_card
 from labor_rights_rag.generation.messages import DISCLAIMER, REFUSAL_MESSAGE
 from labor_rights_rag.generation.parse import parse_answer
+from labor_rights_rag.generation.pricing import estimate_cost_usd
 from labor_rights_rag.persistence.models import Law
 from labor_rights_rag.retrieval.hybrid import hybrid_search
 
@@ -38,18 +39,22 @@ class AskResult(BaseModel):
     input_tokens: int
     output_tokens: int
     seconds: float
+    cost_usd: float | None = None  # None for a model that is free or not in the price list
     disclaimer: str = DISCLAIMER
 
 
 def _refusal(status: Status, model: str | None = None, **usage: float) -> AskResult:
+    input_tokens = int(usage.get("input_tokens", 0))
+    output_tokens = int(usage.get("output_tokens", 0))
     return AskResult(
         status=status,
         answer=REFUSAL_MESSAGE,
         citations=[],
         model=model,
-        input_tokens=int(usage.get("input_tokens", 0)),
-        output_tokens=int(usage.get("output_tokens", 0)),
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
         seconds=float(usage.get("seconds", 0.0)),
+        cost_usd=estimate_cost_usd(model, input_tokens, output_tokens),
     )
 
 
@@ -99,4 +104,5 @@ async def ask(
         input_tokens=response.input_tokens,
         output_tokens=response.output_tokens,
         seconds=response.seconds,
+        cost_usd=estimate_cost_usd(response.model, response.input_tokens, response.output_tokens),
     )

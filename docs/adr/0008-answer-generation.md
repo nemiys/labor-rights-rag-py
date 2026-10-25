@@ -33,6 +33,22 @@ be good enough for a task that looks simple.
   unknown and has to be measured before it is relied on.
 - **JSON output:** easier to read, but fragile with small models.
 
+## Implementations
+- `ClaudeAnswerer`: the official `anthropic` SDK, model from `ANSWER_MODEL` (default
+  `claude-sonnet-5-5`), `effort` low as a starting value. No sampling parameters are sent.
+  A reply the safety classifiers stopped counts as no answer. The server-side refusal
+  fallback is not enabled: it could not be tested without a key, and a stopped reply
+  already ends as `refused_by_model`.
+- `ChatCompletionsAnswerer`: one `httpx` client for any model that speaks the
+  `/chat/completions` protocol (Ollama, hosted services). Google's documentation gives the
+  address `https://generativelanguage.googleapis.com/v1beta/openai/` and a bearer key for
+  its free tier. The service's limits and terms (including whether free-tier questions are
+  used to improve the service) were not verified and have to be read before use.
+- Retries with a wait for a dropped connection, 429 and 5xx are shared by this client and
+  the Wikisource client (`http_retry.py`). Keys are `SecretStr` settings and never appear
+  in code, logs or errors.
+- Every answer records tokens, seconds and, for a model in the price list, the cost.
+
 ## Consequences
 - The prompt is written in English, which models follow more reliably, and requires a
   Hebrew answer.

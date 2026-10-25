@@ -1,10 +1,11 @@
 """Client for the Open Law Book on Hebrew Wikisource, through the MediaWiki API."""
 
-import asyncio
 from collections.abc import Sequence
 from dataclasses import dataclass
 
 import httpx
+
+from labor_rights_rag.http_retry import with_retries
 
 
 @dataclass(frozen=True)
@@ -31,22 +32,6 @@ class WikisourceClient:
         # are enough. One delay per retry.
         self._retry_delays = retry_delays
 
-    async def _get(self, params: dict[str, str]) -> httpx.Response:
-        for delay in (*self._retry_delays, None):
-            try:
-                response = await self._client.get(self._api_url, params=params)
-                if response.status_code not in (429, 500, 502, 503, 504):
-                    return response
-                error: Exception = httpx.HTTPStatusError(
-                    f"HTTP {response.status_code}", request=response.request, response=response
-                )
-            except httpx.TransportError as transport_error:
-                error = transport_error
-            if delay is None:
-                raise error
-            await asyncio.sleep(delay)
-        raise AssertionError("unreachable")  # the loop above always returns or raises
-
     async def get_page(self, title: str) -> WikisourcePage | None:
         params = {
             "action": "query",
@@ -60,7 +45,9 @@ class WikisourceClient:
             # Ask the API to refuse when its databases lag, instead of adding load.
             "maxlag": "5",
         }
-        response = await self._get(params)
+        response = await with_retries(
+            lambda: self._client.get(self._api_url, params=params), self._retry_delays
+        )
         response.raise_for_status()
         body = response.json()
         if "error" in body:

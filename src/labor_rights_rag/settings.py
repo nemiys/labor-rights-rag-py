@@ -5,6 +5,9 @@ run needs no setup. Inside a container the same values are overridden through
 environment variables (there "localhost" reaches nothing; the service name does).
 """
 
+from typing import Literal
+
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,8 +27,15 @@ class Settings(BaseSettings):
     # Refuse without calling the model when even the closest chunk is further than this
     # (cosine similarity, BGE-M3). A first, careful value; tuned in the evaluation.
     min_vector_score: float = 0.5
-    # Which model writes the answers: "fake" until the real ones are connected.
+    # Which model writes the answers: "fake" (tests), "claude", or "chat" (any model that
+    # speaks the /chat/completions protocol: Ollama, a free hosted service).
     answerer: str = "fake"
+    anthropic_api_key: SecretStr | None = None
+    answer_model: str = "claude-sonnet-5-5"
+    answer_effort: Literal["low", "medium", "high", "xhigh", "max"] = "low"
+    chat_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    chat_model: str = ""
+    chat_api_key: SecretStr | None = None
 
     corpus_path: str = "corpus.toml"
     knesset_odata_url: str = "https://knesset.gov.il/OdataV4/ParliamentInfo"
