@@ -143,8 +143,6 @@ async def run_generation(
     questions: Sequence[Question],
     *,
     min_vector_score: float,
-    candidates: int = 50,
-    rrf_k: int = 60,
     pause_seconds: float = 0.0,
 ) -> list[GenerationRow]:
     rows: list[GenerationRow] = []
@@ -156,8 +154,6 @@ async def run_generation(
                 answerer,
                 question.question,
                 k=5,
-                candidates=candidates,
-                rrf_k=rrf_k,
                 min_vector_score=min_vector_score,
             )
             rows.append(GenerationRow(question, result, None))

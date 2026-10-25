@@ -48,8 +48,6 @@ async def run(split: str, generate: bool, pause: float, out: Path | None) -> str
                 answerer,
                 questions,
                 min_vector_score=settings.min_vector_score,
-                candidates=settings.search_candidates,
-                rrf_k=settings.rrf_k,
                 pause_seconds=pause,
             )
             report += "\n" + generation_report(generated, answerer.name, split)

@@ -13,7 +13,7 @@ from labor_rights_rag.generation.messages import DISCLAIMER, REFUSAL_MESSAGE
 from labor_rights_rag.generation.parse import parse_answer
 from labor_rights_rag.generation.pricing import estimate_cost_usd
 from labor_rights_rag.persistence.models import Law
-from labor_rights_rag.retrieval.hybrid import hybrid_search
+from labor_rights_rag.retrieval.vector import vector_search
 
 # Why a reply is what it is. The person sees only the answer or the refusal sentence; the
 # status is for the logs and for the evaluation.
@@ -65,22 +65,21 @@ async def ask(
     question: str,
     *,
     k: int,
-    candidates: int,
-    rrf_k: int,
     min_vector_score: float,
     law_odata_id: int | None = None,
 ) -> AskResult:
-    found = await hybrid_search(session, embedder, question, k, law_odata_id, candidates, rrf_k)
-    if found.best_vector_score is None or found.best_vector_score < min_vector_score:
+    # Vector search alone: it was as good as every combination that was measured (ADR-0010).
+    hits = await vector_search(session, embedder, question, k, law_odata_id)
+    if not hits or hits[0].score < min_vector_score:
         return _refusal("refused_low_score")
 
-    response = await answerer.answer(question, found.hits)
+    response = await answerer.answer(question, hits)
     usage = {
         "input_tokens": response.input_tokens,
         "output_tokens": response.output_tokens,
         "seconds": response.seconds,
     }
-    parsed = parse_answer(response.text, len(found.hits))
+    parsed = parse_answer(response.text, len(hits))
     if parsed.refused:
         return _refusal("refused_by_model", response.model, **usage)
     if parsed.invalid_citations:
@@ -88,7 +87,7 @@ async def ask(
     if not parsed.citations:
         return _refusal("rejected_no_citations", response.model, **usage)
 
-    cited = [(number, found.hits[number - 1]) for number in parsed.citations]
+    cited = [(number, hits[number - 1]) for number in parsed.citations]
     laws = await session.scalars(
         select(Law).where(Law.odata_id.in_({hit.law_odata_id for _, hit in cited}))
     )

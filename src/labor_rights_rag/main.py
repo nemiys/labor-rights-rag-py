@@ -6,12 +6,18 @@ from fastapi import FastAPI
 
 from labor_rights_rag.api import ask, search
 from labor_rights_rag.api.dependencies import get_embedder
+from labor_rights_rag.persistence.database import session_factory
+from labor_rights_rag.retrieval.bm25 import load_bm25_index
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Load the model at start-up: a bad setup fails now, not on the first question.
     await asyncio.to_thread(get_embedder)
+    # The BM25 index is a few hundred kilobytes in memory. It is not refreshed while the
+    # application runs: restart it after an ingest.
+    async with session_factory() as session:
+        app.state.bm25 = await load_bm25_index(session)
     yield
 
 

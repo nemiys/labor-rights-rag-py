@@ -31,7 +31,5 @@ async def post_ask(
         answerer,
         question,
         k=SOURCES_FOR_THE_ANSWER,
-        candidates=settings.search_candidates,
-        rrf_k=settings.rrf_k,
         min_vector_score=settings.min_vector_score,
     )

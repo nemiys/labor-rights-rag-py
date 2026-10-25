@@ -82,8 +82,6 @@ async def run(
         answerer,
         QUESTION,
         k=5,
-        candidates=50,
-        rrf_k=60,
         min_vector_score=min_score,
         law_odata_id=LAW_ID,
     )

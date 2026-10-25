@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from labor_rights_rag.api.dependencies import get_embedder
@@ -137,15 +138,54 @@ async def client(seeded: AsyncSession) -> AsyncIterator[AsyncClient]:
         yield http
 
 
-async def test_search_endpoint_is_hybrid_by_default_and_shows_both_ranks(
-    client: AsyncClient,
-) -> None:
+async def test_search_endpoint_default_is_vector_search(client: AsyncClient) -> None:
     response = await client.get("/search", params={"q": "חופשה שנתית", "law": LAW})
 
     body = response.json()
     assert response.status_code == 200
-    assert body["mode"] == "hybrid"
+    assert body["mode"] == "vector"
+    assert body["hits"][0]["vector_rank"] is None  # the ranks of each search are for hybrid
+
+
+async def test_search_endpoint_hybrid_shows_the_rank_in_each_search(client: AsyncClient) -> None:
+    response = await client.get(
+        "/search", params={"q": "חופשה שנתית", "law": LAW, "mode": "hybrid"}
+    )
+
+    body = response.json()
+    assert response.status_code == 200
     first = body["hits"][0]
     assert first["section"] == "1"  # the only chunk that both searches found
     assert first["text_rank"] == 1
     assert first["vector_rank"] is not None
+
+
+@pytest.mark.parametrize("mode", ["bm25", "hybrid_bm25"])
+async def test_the_word_index_modes_say_so_when_the_index_is_not_loaded(
+    client: AsyncClient, mode: str
+) -> None:
+    response = await client.get("/search", params={"q": "חופשה", "mode": mode})
+
+    assert response.status_code == 503
+
+
+@pytest.mark.parametrize("mode", ["bm25", "hybrid_bm25"])
+async def test_the_word_index_modes_work_with_an_index(
+    seeded: AsyncSession, client: AsyncClient, mode: str
+) -> None:
+    from labor_rights_rag.api.dependencies import get_bm25
+    from labor_rights_rag.retrieval.bm25 import Bm25Index
+
+    chunks = await seeded.execute(
+        select(Chunk.id, Chunk.search_text)
+        .join(Law, Chunk.law_id == Law.id)
+        .where(Law.odata_id == LAW)
+    )
+    index = Bm25Index((row.id, LAW, row.search_text or "") for row in chunks)
+    client._transport.app.dependency_overrides[get_bm25] = lambda: index  # type: ignore[attr-defined]
+
+    response = await client.get("/search", params={"q": "חופשה שנתית", "law": LAW, "mode": mode})
+
+    assert response.status_code == 200
+    assert response.json()["mode"] == mode
+    assert response.json()["hits"][0]["section"] == "1"

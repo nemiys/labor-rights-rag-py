@@ -1,8 +1,9 @@
 # ADR-0007: Combining vector and text search with RRF
 
 ## Status
-Accepted for development; the value of `k` and the choice of RRF are compared in the
-evaluation (stage 6).
+Partly superseded by ADR-0010: the evaluation showed no gain over vector search, so
+hybrid is not the default, and the constant `k` is 10 and not 60. The description of the
+fusion below is still how it works.
 
 ## Context
 Vector search and text search each fail where the other works (ADR-0006): the vector

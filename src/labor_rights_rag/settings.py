@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     embedder: str = "bge-m3"
 
     # Hybrid search (ADR-0007): the RRF constant, and how many candidates each search gives.
-    rrf_k: int = 60
+    rrf_k: int = 10  # 60 was the first value; 10 was better on the dev questions (ADR-0010)
     search_candidates: int = 50
 
     # Refuse without calling the model when even the closest chunk is further than this
