@@ -155,3 +155,32 @@ def generation_report(rows: Sequence[GenerationRow], model: str, split: str) -> 
                 f"| {r.question.id} | {status} | {facts} | {cite} | {r.question.question} |"
             )
     return "\n".join(lines) + "\n"
+
+
+def answers_report(rows: Sequence[GenerationRow], model: str) -> str:
+    """Every answer in full and what it cites, to read by hand: is each claim in its source."""
+    lines = [
+        f"# Answers to read ({date.today()}, model: {model})",
+        "",
+        "For each answer: does every claim appear in the quoted source? Mark each one.",
+        "",
+    ]
+    for r in rows:
+        q = r.question
+        expected = ", ".join(f"{e.law}:{e.section}" for e in q.expected) or "none (not answerable)"
+        lines += [f"## {q.id} {q.category}", "", f"**Question:** {q.question}", ""]
+        lines.append(f"**Expected sections:** {expected}")
+        if r.result is None:
+            lines += [f"**Call failed:** {r.error}", ""]
+            continue
+        lines += [
+            f"**Status:** {r.result.status}. Facts found: {r.facts_ok}. "
+            f"Citation right: {r.citation_ok}.",
+            "",
+            f"**Answer:** {r.result.answer}",
+            "",
+        ]
+        for c in r.result.citations:
+            lines.append(f"- [{c.number}] {c.card.law_id}:{c.card.section}: {c.card.quote[:200]}")
+        lines.append("")
+    return "\n".join(lines) + "\n"

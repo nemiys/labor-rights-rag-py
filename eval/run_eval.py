@@ -16,7 +16,7 @@ from pathlib import Path
 from labor_rights_rag.embeddings.factory import make_embedder
 from labor_rights_rag.evaluation.metrics import threshold_sweep
 from labor_rights_rag.evaluation.questions import load_questions
-from labor_rights_rag.evaluation.report import generation_report, retrieval_report
+from labor_rights_rag.evaluation.report import answers_report, generation_report, retrieval_report
 from labor_rights_rag.evaluation.runner import run_generation, run_retrieval
 from labor_rights_rag.generation.factory import make_answerer
 from labor_rights_rag.persistence.database import engine, session_factory
@@ -27,7 +27,9 @@ QUESTIONS = Path(__file__).parent / "questions.jsonl"
 THRESHOLDS = [0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70]
 
 
-async def run(split: str, generate: bool, pause: float, out: Path | None) -> str:
+async def run(
+    split: str, generate: bool, pause: float, out: Path | None, answers: Path | None
+) -> str:
     questions = [q for q in load_questions(QUESTIONS) if split == "all" or q.split == split]
     embedder = make_embedder(settings.embedder)
     async with session_factory() as session:
@@ -51,6 +53,8 @@ async def run(split: str, generate: bool, pause: float, out: Path | None) -> str
                 pause_seconds=pause,
             )
             report += "\n" + generation_report(generated, answerer.name, split)
+            if answers:
+                answers.write_text(answers_report(generated, answerer.name), encoding="utf-8")
     await engine.dispose()
     if out:
         out.write_text(report, encoding="utf-8")
@@ -65,8 +69,9 @@ def main() -> None:
     parser.add_argument("--generate", action="store_true", help="also run the answers")
     parser.add_argument("--pause", type=float, default=12.0, help="seconds between model calls")
     parser.add_argument("--out", type=Path, help="write the report to this file")
+    parser.add_argument("--answers", type=Path, help="write every answer in full, to read by hand")
     args = parser.parse_args()
-    report = asyncio.run(run(args.split, args.generate, args.pause, args.out))
+    report = asyncio.run(run(args.split, args.generate, args.pause, args.out, args.answers))
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # Hebrew on Windows
     print(report)
 

@@ -251,3 +251,32 @@ def test_generation_report_counts_refusals_and_lists_the_failures() -> None:
     assert "| Unanswerable questions refused | 100% (1/1) |" in report
     assert "| a | refused_by_model |" in report  # the failure is listed
     assert "Calls that failed: 1" in report
+
+
+def test_answers_report_has_each_answer_in_full_with_what_it_cites() -> None:
+    from labor_rights_rag.evaluation.report import answers_report
+    from labor_rights_rag.generation.ask import Citation
+    from labor_rights_rag.generation.card import VerificationCard
+
+    card = VerificationCard(
+        law="חוק", law_id=LAW, section="1", part=0, quote="הטקסט השמור של הסעיף",
+        text_as_of=None, currency_status="ok", currency_warning=None, knesset_url="u",
+        wikisource_url="w", last_amendment=None, last_amendment_url=None,
+        search_hint="h", disclaimer="d",
+    )  # fmt: skip
+    answered = AskResult(
+        status="answered", answer="התשובה המלאה [1]", citations=[Citation(number=1, card=card)],
+        model="m", input_tokens=1, output_tokens=1, seconds=1.0,
+    )  # fmt: skip
+    rows = [
+        GenerationRow(_q("a", "שאלה ראשונה", "1"), answered, None),
+        GenerationRow(_q("b", "שאלה שנייה", None), None, "ReadTimeout"),
+    ]
+
+    report = answers_report(rows, "m")
+
+    assert "**Question:** שאלה ראשונה" in report
+    assert "**Answer:** התשובה המלאה [1]" in report
+    assert f"- [1] {LAW}:1: הטקסט השמור של הסעיף" in report
+    assert "**Call failed:** ReadTimeout" in report
+    assert "none (not answerable)" in report
