@@ -14,7 +14,7 @@ import httpx
 from sqlalchemy import select
 
 from labor_rights_rag.embeddings.base import Embedder
-from labor_rights_rag.embeddings.fake import HashEmbedder
+from labor_rights_rag.embeddings.factory import EMBEDDER_NAMES, make_embedder
 from labor_rights_rag.ingest.corpus import load_corpus
 from labor_rights_rag.ingest.indexing import index_law
 from labor_rights_rag.ingest.knesset import KnessetClient
@@ -24,16 +24,6 @@ from labor_rights_rag.ingest.wikisource import WikisourceClient
 from labor_rights_rag.persistence.database import engine, session_factory
 from labor_rights_rag.persistence.models import Law
 from labor_rights_rag.settings import settings
-
-
-def make_embedder(name: str) -> Embedder:
-    if name == "hash":
-        return HashEmbedder()
-    if name == "bge-m3":
-        from labor_rights_rag.embeddings.bge_m3 import BgeM3Embedder
-
-        return BgeM3Embedder()
-    raise ValueError(f"unknown embedder: {name}")
 
 
 async def run(embedder: Embedder) -> list[LawResult]:
@@ -69,7 +59,7 @@ def main() -> int:
     parser.add_argument("--report", type=Path, help="also write the report to this file")
     parser.add_argument(
         "--embedder",
-        choices=["bge-m3", "hash"],
+        choices=EMBEDDER_NAMES,
         default="bge-m3",
         help="the model that computes the vectors (hash: a fake one, for development)",
     )

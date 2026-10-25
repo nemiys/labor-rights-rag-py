@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://docs:docs@localhost:5435/docs"
     redis_url: str = "redis://localhost:6382/0"
 
+    # Which embedding model computes vectors: "bge-m3" (needs the extra) or "hash" (a fake).
+    embedder: str = "bge-m3"
+
     corpus_path: str = "corpus.toml"
     knesset_odata_url: str = "https://knesset.gov.il/OdataV4/ParliamentInfo"
     wikisource_api_url: str = "https://he.wikisource.org/w/api.php"
