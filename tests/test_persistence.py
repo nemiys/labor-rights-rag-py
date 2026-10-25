@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from labor_rights_rag.embeddings.fake import HashEmbedder
 from labor_rights_rag.persistence.models import Chunk, Law
+from labor_rights_rag.retrieval.vector import use_exact_vector_scan
 
 
 def _law(odata_id: int = 999001) -> Law:
@@ -82,6 +83,7 @@ async def test_nearest_chunk_by_cosine_distance_is_the_one_sharing_the_words(
     db_session.add(law)
     await db_session.flush()
 
+    await use_exact_vector_scan(db_session)  # an HNSW scan can miss rows in a tiny table
     question = embedder.embed_query("כמה ימי חופשה שנתית")
     nearest = await db_session.execute(
         select(Chunk.section_number, Chunk.embedding_model)

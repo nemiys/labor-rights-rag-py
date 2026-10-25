@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from labor_rights_rag.api.dependencies import get_embedder
@@ -9,7 +10,8 @@ from labor_rights_rag.embeddings.fake import HashEmbedder
 from labor_rights_rag.main import create_app
 from labor_rights_rag.persistence.database import get_session
 from labor_rights_rag.persistence.models import Chunk, Law
-from labor_rights_rag.retrieval.vector import vector_search
+from labor_rights_rag.retrieval.vector import use_exact_vector_scan, vector_search
+from labor_rights_rag.settings import settings
 
 LEAVE = "עובד זכאי לחופשה שנתית בת ימים"
 OVERTIME = "שעות נוספות משולמות בתוספת"
@@ -143,3 +145,21 @@ async def test_search_endpoint_rejects_bad_parameters(
     response = await client.get("/search", params=params)
 
     assert response.status_code == 422
+
+
+async def test_vector_queries_are_exact_by_default(seeded: AsyncSession) -> None:
+    await use_exact_vector_scan(seeded)
+
+    # With the index scan switched off the planner takes the exact table scan.
+    assert (await seeded.execute(text("SHOW enable_indexscan"))).scalar() == "off"
+
+
+async def test_with_the_index_on_the_scan_goes_on_until_it_has_enough_rows(
+    seeded: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "vector_index", True)
+
+    await use_exact_vector_scan(seeded)
+
+    assert (await seeded.execute(text("SHOW hnsw.iterative_scan"))).scalar() == "strict_order"
+    assert (await seeded.execute(text("SHOW enable_indexscan"))).scalar() == "on"

@@ -2,12 +2,28 @@
 
 import asyncio
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from labor_rights_rag.embeddings.base import Embedder
 from labor_rights_rag.persistence.models import Chunk, Law
 from labor_rights_rag.retrieval.hit import Hit
+from labor_rights_rag.settings import settings
+
+
+async def use_exact_vector_scan(session: AsyncSession) -> None:
+    """Make the vector queries of this transaction exact.
+
+    An HNSW index is an approximate search. On a small table, or after many rows were deleted
+    and inserted, it can return fewer rows than asked for. For about a thousand vectors a scan
+    of the whole table takes milliseconds and is exact, so that is the default. The index stays
+    in the schema for a corpus that grows (see docs/adr/0011). The setting VECTOR_INDEX turns it
+    on, with a scan that goes on until it has enough rows, in exact order.
+    """
+    if settings.vector_index:
+        await session.execute(text("SET LOCAL hnsw.iterative_scan = strict_order"))
+    else:
+        await session.execute(text("SET LOCAL enable_indexscan = off"))
 
 
 async def vector_search(
@@ -17,6 +33,7 @@ async def vector_search(
     k: int,
     law_odata_id: int | None = None,
 ) -> list[Hit]:
+    await use_exact_vector_scan(session)
     # The model is CPU-bound: a thread keeps the event loop free for other requests.
     vector = await asyncio.to_thread(embedder.embed_query, query)
     distance = Chunk.embedding.cosine_distance(vector)

@@ -112,7 +112,9 @@ def test_the_questions_file_is_well_formed() -> None:
 
 def test_the_questions_file_is_frozen() -> None:
     recorded = (EVAL / "QUESTIONS.sha256").read_text().strip()
-    actual = hashlib.sha256((EVAL / "questions.jsonl").read_bytes()).hexdigest()
+    # Windows may check the file out with CRLF endings; the hash is of the LF form.
+    content = (EVAL / "questions.jsonl").read_bytes().replace(b"\r\n", b"\n")
+    actual = hashlib.sha256(content).hexdigest()
 
     # If this fails the evaluation set was changed. Do it on purpose: update the hash and say
     # in the commit why.

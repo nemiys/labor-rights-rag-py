@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     chat_model: str = ""
     chat_api_key: SecretStr | None = None
 
+    # Use the HNSW index for the vector search. Off: an exact scan, which is right for about a
+    # thousand vectors (docs/adr/0011).
+    vector_index: bool = False
+
     corpus_path: str = "corpus.toml"
     knesset_odata_url: str = "https://knesset.gov.il/OdataV4/ParliamentInfo"
     wikisource_api_url: str = "https://he.wikisource.org/w/api.php"
