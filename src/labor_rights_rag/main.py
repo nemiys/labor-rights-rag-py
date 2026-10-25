@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from labor_rights_rag.api import search
+from labor_rights_rag.api import ask, search
 from labor_rights_rag.api.dependencies import get_embedder
 
 
@@ -18,6 +18,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     app = FastAPI(title="labor-rights-rag", lifespan=lifespan)
     app.include_router(search.router)
+    app.include_router(ask.router)
 
     @app.get("/health")
     async def health() -> dict[str, str]:

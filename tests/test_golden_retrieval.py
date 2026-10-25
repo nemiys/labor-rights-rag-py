@@ -75,6 +75,6 @@ async def test_text_search_finds_the_answering_section(
 async def test_hybrid_search_finds_the_answering_section(
     indexed: AsyncSession, law: int, question: str, expected: str
 ) -> None:
-    hits = await hybrid_search(indexed, embedder, question, k=3, law_odata_id=law)
+    hits = (await hybrid_search(indexed, embedder, question, k=3, law_odata_id=law)).hits
 
     assert expected in [h.section_number for h in hits]

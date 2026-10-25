@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     rrf_k: int = 60
     search_candidates: int = 50
 
+    # Refuse without calling the model when even the closest chunk is further than this
+    # (cosine similarity, BGE-M3). A first, careful value; tuned in the evaluation.
+    min_vector_score: float = 0.5
+    # Which model writes the answers: "fake" until the real ones are connected.
+    answerer: str = "fake"
+
     corpus_path: str = "corpus.toml"
     knesset_odata_url: str = "https://knesset.gov.il/OdataV4/ParliamentInfo"
     wikisource_api_url: str = "https://he.wikisource.org/w/api.php"

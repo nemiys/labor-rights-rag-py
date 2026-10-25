@@ -18,3 +18,6 @@ class Hit:
     # Hybrid search only: the rank this chunk had in each search, empty if it did not find it.
     vector_rank: int | None = None
     text_rank: int | None = None
+    # The cosine similarity from the vector search, kept through the fusion: it is the one
+    # score that says how close the chunk is to the question. None if only words found it.
+    vector_score: float | None = None

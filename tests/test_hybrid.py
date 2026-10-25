@@ -102,7 +102,7 @@ async def seeded(db_session: AsyncSession) -> AsyncSession:
 
 
 async def test_hybrid_returns_what_either_search_found(seeded: AsyncSession) -> None:
-    hits = await hybrid_search(seeded, embedder, "חופשה שנתית", k=5, law_odata_id=LAW)
+    hits = (await hybrid_search(seeded, embedder, "חופשה שנתית", k=5, law_odata_id=LAW)).hits
 
     by_section = {h.section_number: h for h in hits}
     assert set(by_section) == {"1", "2", "3"}
@@ -112,14 +112,14 @@ async def test_hybrid_returns_what_either_search_found(seeded: AsyncSession) -> 
 
 
 async def test_hybrid_returns_at_most_k(seeded: AsyncSession) -> None:
-    hits = await hybrid_search(seeded, embedder, "חופשה שנתית", k=2, law_odata_id=LAW)
+    hits = (await hybrid_search(seeded, embedder, "חופשה שנתית", k=2, law_odata_id=LAW)).hits
 
     assert [h.rank for h in hits] == [1, 2]
 
 
 async def test_hybrid_works_when_the_question_is_only_question_words(seeded: AsyncSession) -> None:
     # Text search has nothing to look for; the meaning search still answers.
-    hits = await hybrid_search(seeded, embedder, "מה כמה לי", k=5, law_odata_id=LAW)
+    hits = (await hybrid_search(seeded, embedder, "מה כמה לי", k=5, law_odata_id=LAW)).hits
 
     assert all(h.text_rank is None for h in hits)
 

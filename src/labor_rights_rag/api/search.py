@@ -53,9 +53,10 @@ async def search(
     elif mode == "text":
         hits = await text_search(session, query, k, law)
     else:
-        hits = await hybrid_search(
+        found = await hybrid_search(
             session, embedder, query, k, law, settings.search_candidates, settings.rrf_k
         )
+        hits = found.hits
     return SearchResponse(
         query=query,
         mode=mode,
