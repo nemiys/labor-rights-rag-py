@@ -24,7 +24,8 @@ def retrieval_report(
     current_threshold: float,
 ) -> str:
     by_mode = {m: [r for r in rows if r.mode == m] for m in MODES}
-    n = len(by_mode["hybrid"])
+    focus = "hybrid_bm25" if by_mode["hybrid_bm25"] else "hybrid"
+    n = len(by_mode[focus])
     lines = [
         f"# Retrieval evaluation ({date.today()}, split: {split}, {n} answerable questions)",
         "",
@@ -43,23 +44,31 @@ def retrieval_report(
         )
 
     categories = sorted({r.question.category for r in rows})
-    lines += ["", "## By question type (Hit@5 / MRR)", "", "| Type | n | vector | text | hybrid |"]
-    lines.append("|---|---|---|---|---|")
+    lines += [
+        "",
+        "## By question type (Hit@5 / MRR)",
+        "",
+        "| Type | n | " + " | ".join(MODES) + " |",
+    ]
+    lines.append("|---|---|" + "---|" * len(MODES))
     for category in categories:
         cells = []
         for mode in MODES:
             s = summarize_retrieval([r for r in by_mode[mode] if r.question.category == category])
             cells.append(f"{_pct(s.hit5)} / {s.mrr:.2f}")
-        size = len([r for r in by_mode["hybrid"] if r.question.category == category])
+        size = len([r for r in by_mode[focus] if r.question.category == category])
         lines.append(f"| {category} | {size} | " + " | ".join(cells) + " |")
 
     ranks: dict[str, dict[str, int | None]] = defaultdict(dict)
     for r in rows:
         ranks[r.question.id][r.mode] = r.rank
     questions = {r.question.id: r.question for r in rows}
-    misses = [qid for qid in ranks if not hit_at(ranks[qid].get("hybrid"), 5)]
-    lines += ["", f"## Hybrid misses: not in the first 5 ({len(misses)})", ""]
-    lines += ["| Id | vector | text | hybrid | Question |", "|---|---|---|---|---|"]
+    misses = [qid for qid in ranks if not hit_at(ranks[qid].get(focus), 5)]
+    lines += ["", f"## Misses of {focus}: not in the first 5 ({len(misses)})", ""]
+    lines += [
+        "| Id | " + " | ".join(MODES) + " | Question |",
+        "|---|" + "---|" * len(MODES) + "---|",
+    ]
     for qid in misses:
         found = ranks[qid]
         cells = [str(found.get(m) or "-") for m in MODES]

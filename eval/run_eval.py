@@ -20,6 +20,7 @@ from labor_rights_rag.evaluation.report import generation_report, retrieval_repo
 from labor_rights_rag.evaluation.runner import run_generation, run_retrieval
 from labor_rights_rag.generation.factory import make_answerer
 from labor_rights_rag.persistence.database import engine, session_factory
+from labor_rights_rag.retrieval.bm25 import load_bm25_index
 from labor_rights_rag.settings import settings
 
 QUESTIONS = Path(__file__).parent / "questions.jsonl"
@@ -30,8 +31,9 @@ async def run(split: str, generate: bool, pause: float, out: Path | None) -> str
     questions = [q for q in load_questions(QUESTIONS) if split == "all" or q.split == split]
     embedder = make_embedder(settings.embedder)
     async with session_factory() as session:
+        bm25 = await load_bm25_index(session)
         rows, best = await run_retrieval(
-            session, embedder, questions, settings.search_candidates, settings.rrf_k
+            session, embedder, questions, bm25, settings.search_candidates, settings.rrf_k
         )
         answerable = [best[q.id] for q in questions if q.answerable]
         unanswerable = [best[q.id] for q in questions if not q.answerable]

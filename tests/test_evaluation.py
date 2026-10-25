@@ -2,6 +2,7 @@ import hashlib
 from pathlib import Path
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from labor_rights_rag.embeddings.fake import HashEmbedder
@@ -24,6 +25,7 @@ from labor_rights_rag.evaluation.runner import (
 from labor_rights_rag.generation.ask import AskResult
 from labor_rights_rag.generation.fake import FakeAnswerer
 from labor_rights_rag.persistence.models import Chunk, Law
+from labor_rights_rag.retrieval.bm25 import Bm25Index
 from labor_rights_rag.retrieval.hit import Hit
 from labor_rights_rag.retrieval.normalize import to_search_text
 
@@ -167,9 +169,15 @@ async def test_retrieval_run_ranks_the_expected_section_in_every_mode(
 ) -> None:
     questions = [_q("a", "קלמרפוז טורבינה", "1"), _q("b", "משהו שאין לו תשובה", None)]
 
-    rows, best = await run_retrieval(seeded, embedder, questions)
+    chunks = await seeded.execute(
+        select(Chunk.id, Chunk.search_text)
+        .join(Law, Chunk.law_id == Law.id)
+        .where(Law.odata_id == LAW)
+    )
+    index = Bm25Index((row.id, LAW, row.search_text or "") for row in chunks)
+    rows, best = await run_retrieval(seeded, embedder, questions, index)
 
-    assert {r.mode for r in rows} == {"vector", "text", "hybrid"}
+    assert {r.mode for r in rows} == {"vector", "text", "bm25", "hybrid", "hybrid_bm25"}
     assert all(r.question.id == "a" for r in rows)  # no rows for unanswerable questions
     assert all(r.rank == 1 for r in rows)
     assert set(best) == {"a", "b"}  # but every question has its closest-chunk score

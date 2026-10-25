@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from labor_rights_rag.embeddings.base import Embedder
+from labor_rights_rag.retrieval.bm25 import Bm25Index, bm25_search
 from labor_rights_rag.retrieval.hit import Hit
 from labor_rights_rag.retrieval.text import text_search
 from labor_rights_rag.retrieval.vector import vector_search
@@ -63,11 +64,15 @@ async def hybrid_search(
     law_odata_id: int | None = None,
     candidates: int = 50,
     rrf_k: int = 60,
+    bm25: Bm25Index | None = None,
 ) -> SearchResult:
     # More candidates than the caller wants: a chunk that both searches put in the middle
     # can still win. The two queries run one after the other on the same session.
     depth = max(candidates, k)
     by_meaning = await vector_search(session, embedder, query, depth, law_odata_id)
-    by_words = await text_search(session, query, depth, law_odata_id)
+    if bm25 is not None:
+        by_words = await bm25_search(session, bm25, query, depth, law_odata_id)
+    else:
+        by_words = await text_search(session, query, depth, law_odata_id)
     fused = reciprocal_rank_fusion(by_meaning, by_words, rrf_k)[:k]
     return SearchResult(fused, by_meaning[0].score if by_meaning else None)

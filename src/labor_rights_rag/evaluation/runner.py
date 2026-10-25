@@ -17,12 +17,13 @@ from labor_rights_rag.evaluation.metrics import (
 from labor_rights_rag.evaluation.questions import Question
 from labor_rights_rag.generation.ask import AskResult, ask
 from labor_rights_rag.generation.base import Answerer
+from labor_rights_rag.retrieval.bm25 import Bm25Index, bm25_search
 from labor_rights_rag.retrieval.hit import Hit
 from labor_rights_rag.retrieval.hybrid import hybrid_search
 from labor_rights_rag.retrieval.text import text_search
 from labor_rights_rag.retrieval.vector import vector_search
 
-MODES = ("vector", "text", "hybrid")
+MODES = ("vector", "text", "bm25", "hybrid", "hybrid_bm25")
 DEPTH = 10  # how many chunks are looked at: MRR is measured within this depth
 
 
@@ -59,19 +60,30 @@ def summarize_retrieval(rows: Sequence[RetrievalRow]) -> RetrievalSummary:
 
 
 async def _search(
-    session: AsyncSession, embedder: Embedder, mode: str, question: str, candidates: int, rrf_k: int
+    session: AsyncSession,
+    embedder: Embedder,
+    bm25: Bm25Index,
+    mode: str,
+    question: str,
+    candidates: int,
+    rrf_k: int,
 ) -> list[Hit]:
     if mode == "vector":
         return await vector_search(session, embedder, question, DEPTH)
     if mode == "text":
         return await text_search(session, question, DEPTH)
-    return (await hybrid_search(session, embedder, question, DEPTH, None, candidates, rrf_k)).hits
+    if mode == "bm25":
+        return await bm25_search(session, bm25, question, DEPTH)
+    index = bm25 if mode == "hybrid_bm25" else None
+    found = await hybrid_search(session, embedder, question, DEPTH, None, candidates, rrf_k, index)
+    return found.hits
 
 
 async def run_retrieval(
     session: AsyncSession,
     embedder: Embedder,
     questions: Sequence[Question],
+    bm25: Bm25Index,
     candidates: int = 50,
     rrf_k: int = 60,
 ) -> tuple[list[RetrievalRow], dict[str, float]]:
@@ -85,7 +97,9 @@ async def run_retrieval(
         if not question.answerable:
             continue
         for mode in MODES:
-            hits = await _search(session, embedder, mode, question.question, candidates, rrf_k)
+            hits = await _search(
+                session, embedder, bm25, mode, question.question, candidates, rrf_k
+            )
             rows.append(
                 RetrievalRow(
                     question,
