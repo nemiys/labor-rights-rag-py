@@ -117,7 +117,7 @@ docker-compose.yml (pgvector + redis)  Dockerfile  .github/workflows/ci.yml
 2. ✅ אחזור ופרסור: לקוחות ויקיטקסט ו-OData, פרסור wikitext לסעיפים ולתגיות תיקון, בדיקת עדכניות, דוח אימות לכל החוקים.
 3. ✅ chunking, embeddings ואינדוקס אידמפוטנטי.
 4. ✅ retrieval: וקטורים, טקסט, חיבור (RRF). `/search`.
-5. 🧠 generation: prompt, Claude, ציטוטים, סירוב כשאין הקשר, כרטיס אימות. `/ask`.
+5. ✅ generation: prompt, Claude, ציטוטים, סירוב כשאין הקשר, כרטיס אימות. `/ask`.
 6. 🧠 הערכה (סעיף 7).
 7. הקשחה, CI מלא, README, ADR, דמו.
 
