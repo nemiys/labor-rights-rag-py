@@ -103,13 +103,25 @@ async def client(seeded: AsyncSession) -> AsyncIterator[AsyncClient]:
 
 
 async def test_search_endpoint_returns_hits_in_the_documented_shape(client: AsyncClient) -> None:
-    response = await client.get("/search", params={"q": " ימי חופשה שנתית ", "law": LAW_A})
+    response = await client.get(
+        "/search", params={"q": " ימי חופשה שנתית ", "law": LAW_A, "mode": "vector"}
+    )
 
     body = response.json()
     assert response.status_code == 200
     assert (body["query"], body["mode"], body["k"]) == ("ימי חופשה שנתית", "vector", 5)
     first = body["hits"][0]
-    assert set(first) == {"rank", "score", "law", "law_id", "section", "part", "text"}
+    assert set(first) == {
+        "rank",
+        "score",
+        "law",
+        "law_id",
+        "section",
+        "part",
+        "text",
+        "vector_rank",
+        "text_rank",
+    }
     assert (first["rank"], first["law_id"], first["section"], first["part"]) == (1, LAW_A, "1", 0)
     assert first["text"] == LEAVE
 
@@ -121,7 +133,7 @@ async def test_search_endpoint_returns_hits_in_the_documented_shape(client: Asyn
         {"q": "   "},  # a blank question
         {"q": "חופשה", "k": 0},
         {"q": "חופשה", "k": 51},
-        {"q": "חופשה", "mode": "hybrid"},  # not built yet
+        {"q": "חופשה", "mode": "semantic"},  # not a mode
         {"q": "חופשה", "law": "not-a-number"},
     ],
 )

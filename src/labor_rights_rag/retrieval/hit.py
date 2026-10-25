@@ -15,3 +15,6 @@ class Hit:
     section_number: str
     chunk_index: int
     text: str
+    # Hybrid search only: the rank this chunk had in each search, empty if it did not find it.
+    vector_rank: int | None = None
+    text_rank: int | None = None
