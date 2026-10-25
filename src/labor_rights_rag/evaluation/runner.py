@@ -1,6 +1,7 @@
 """Runs the questions through the system and collects what is needed for the measures."""
 
 import asyncio
+import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -144,20 +145,29 @@ async def run_generation(
     *,
     min_vector_score: float,
     pause_seconds: float = 0.0,
+    question_timeout: float = 240.0,
 ) -> list[GenerationRow]:
     rows: list[GenerationRow] = []
-    for question in questions:
+    for number, question in enumerate(questions, start=1):
+        progress: str
         try:
-            result = await ask(
-                session,
-                embedder,
-                answerer,
-                question.question,
-                k=5,
-                min_vector_score=min_vector_score,
+            # A hard limit per question: a service that hangs must not stall the whole run.
+            result = await asyncio.wait_for(
+                ask(
+                    session,
+                    embedder,
+                    answerer,
+                    question.question,
+                    k=5,
+                    min_vector_score=min_vector_score,
+                ),
+                timeout=question_timeout,
             )
             rows.append(GenerationRow(question, result, None))
+            progress = result.status
         except Exception as error:  # a failed call is a result, not the end of the run
+            progress = f"{type(error).__name__}"
             rows.append(GenerationRow(question, None, f"{type(error).__name__}: {error}"[:200]))
+        print(f"[{number}/{len(questions)}] {question.id}: {progress}", file=sys.stderr, flush=True)
         await asyncio.sleep(pause_seconds)
     return rows

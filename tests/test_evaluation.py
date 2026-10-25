@@ -280,3 +280,25 @@ def test_answers_report_has_each_answer_in_full_with_what_it_cites() -> None:
     assert f"- [1] {LAW}:1: הטקסט השמור של הסעיף" in report
     assert "**Call failed:** ReadTimeout" in report
     assert "none (not answerable)" in report
+
+
+async def test_a_question_that_hangs_is_cut_off_and_the_run_goes_on(seeded: AsyncSession) -> None:
+    import asyncio
+
+    class Hangs(FakeAnswerer):
+        calls = 0
+
+        async def answer(self, question: str, hits):  # type: ignore[no-untyped-def]
+            Hangs.calls += 1
+            if Hangs.calls == 1:
+                await asyncio.sleep(30)
+            return await super().answer(question, hits)
+
+    questions = [_q("a", "קלמרפוז טורבינה", "1"), _q("b", "קלמרפוז טורבינה", "1")]
+
+    rows = await run_generation(
+        seeded, embedder, Hangs(), questions, min_vector_score=0.0, question_timeout=0.2
+    )
+
+    assert rows[0].result is None and "TimeoutError" in (rows[0].error or "")
+    assert rows[1].result is not None and rows[1].result.status == "answered"
