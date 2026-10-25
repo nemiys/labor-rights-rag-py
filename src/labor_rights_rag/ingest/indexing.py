@@ -16,6 +16,7 @@ from labor_rights_rag.embeddings.base import Embedder
 from labor_rights_rag.ingest.pipeline import IndexStats, content_hash
 from labor_rights_rag.parsing.wikitext import ParsedLaw
 from labor_rights_rag.persistence.models import Chunk, Law
+from labor_rights_rag.retrieval.normalize import to_search_text
 
 Key = tuple[str, int, str]  # section number, part, hash of the embedded text
 
@@ -49,6 +50,8 @@ async def index_law(
                 session.add(row)
                 stats.added += 1
             row.amended_years = chunk.amended_years
+            # Rewritten on every run, so a change in the normalization rules needs no model.
+            row.search_text = to_search_text(chunk.embed_text)
             if row.embedding is not None and row.embedding_model == embedder.name:
                 stats.kept += 1
             else:

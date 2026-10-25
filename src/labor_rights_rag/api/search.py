@@ -6,6 +6,8 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from labor_rights_rag.api.dependencies import EmbedderDep, SessionDep
+from labor_rights_rag.retrieval.hit import Hit
+from labor_rights_rag.retrieval.text import text_search
 from labor_rights_rag.retrieval.vector import vector_search
 
 router = APIRouter()
@@ -23,7 +25,7 @@ class SearchHit(BaseModel):
 
 class SearchResponse(BaseModel):
     query: str
-    mode: Literal["vector"]
+    mode: Literal["vector", "text"]
     k: int
     hits: list[SearchHit]
 
@@ -33,7 +35,7 @@ async def search(
     session: SessionDep,
     embedder: EmbedderDep,
     q: Annotated[str, Query(min_length=1, description="the question")],
-    mode: Literal["vector"] = "vector",
+    mode: Literal["vector", "text"] = "vector",
     k: Annotated[int, Query(ge=1, le=50)] = 5,
     law: Annotated[int | None, Query(description="only this law, by its Knesset id")] = None,
 ) -> SearchResponse:
@@ -41,7 +43,11 @@ async def search(
     if not query:
         raise HTTPException(status_code=422, detail="q must not be blank")
 
-    hits = await vector_search(session, embedder, query, k, law)
+    hits: list[Hit]
+    if mode == "vector":
+        hits = await vector_search(session, embedder, query, k, law)
+    else:
+        hits = await text_search(session, query, k, law)
     return SearchResponse(
         query=query,
         mode=mode,

@@ -121,7 +121,7 @@ async def test_search_endpoint_returns_hits_in_the_documented_shape(client: Asyn
         {"q": "   "},  # a blank question
         {"q": "חופשה", "k": 0},
         {"q": "חופשה", "k": 51},
-        {"q": "חופשה", "mode": "text"},  # not built yet
+        {"q": "חופשה", "mode": "hybrid"},  # not built yet
         {"q": "חופשה", "law": "not-a-number"},
     ],
 )

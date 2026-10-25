@@ -1,26 +1,13 @@
 """Vector search: the chunks whose meaning is closest to the question."""
 
 import asyncio
-from dataclasses import dataclass
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from labor_rights_rag.embeddings.base import Embedder
 from labor_rights_rag.persistence.models import Chunk, Law
-
-
-@dataclass(frozen=True)
-class Hit:
-    rank: int  # 1 is the closest
-    # Cosine similarity (1 - distance): higher is closer. For debugging, not a confidence.
-    score: float
-    chunk_id: int
-    law_odata_id: int
-    law_name: str
-    section_number: str
-    chunk_index: int
-    text: str
+from labor_rights_rag.retrieval.hit import Hit
 
 
 async def vector_search(

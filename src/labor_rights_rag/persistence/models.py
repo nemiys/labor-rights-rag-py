@@ -1,8 +1,4 @@
-"""Database tables: one row per law, and one row per searchable chunk of a law.
-
-The full-text-search column is deliberately missing: its shape depends on how Hebrew
-text is normalized (decided in stage 4), and Alembic adds it then without losing data.
-"""
+"""Database tables: one row per law, and one row per searchable chunk of a law."""
 
 from datetime import date, datetime
 
@@ -10,6 +6,7 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     ARRAY,
     CheckConstraint,
+    Computed,
     DateTime,
     ForeignKey,
     Index,
@@ -18,6 +15,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from labor_rights_rag.embeddings.base import EMBEDDING_DIM
@@ -74,6 +72,8 @@ class Chunk(Base):
             postgresql_using="hnsw",
             postgresql_ops={"embedding": "vector_cosine_ops"},
         ),
+        # Word search over `tsv`.
+        Index("ix_chunks_tsv", "tsv", postgresql_using="gin"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -92,6 +92,12 @@ class Chunk(Base):
     # so the model's name is stored with each one.
     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM))
     embedding_model: Mapped[str | None] = mapped_column(Text)
+    # The normalized words of the header and the body (see retrieval/normalize.py), and the
+    # tsvector the database derives from them for full-text search.
+    search_text: Mapped[str | None] = mapped_column(Text)
+    tsv: Mapped[str | None] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('simple', coalesce(search_text, ''))", persisted=True)
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     law: Mapped[Law] = relationship(back_populates="chunks")

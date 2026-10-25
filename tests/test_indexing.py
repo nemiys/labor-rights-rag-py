@@ -141,3 +141,24 @@ async def test_a_different_model_recomputes_and_records_its_name(
         await db_session.scalars(select(Chunk.embedding_model).where(Chunk.law_id == law.id))
     ).all()
     assert list(models) == ["model-b"]
+
+
+async def test_search_text_is_filled_and_refilled_without_computing_a_vector(
+    db_session: AsyncSession, law: Law
+) -> None:
+    embedder = CountingEmbedder()
+    parsed = ParsedLaw(None, [_section("14א", "בחופשה")], [])
+    await index_law(db_session, law, parsed, embedder)
+    row = (await db_session.scalars(select(Chunk).where(Chunk.law_id == law.id))).one()
+    # The header (short law name, section number) and the body, with the prefix-less form.
+    assert row.search_text
+    assert {"לבדיקה", "14א", "בחופשה", "חופשה"} <= set(row.search_text.split())
+
+    row.search_text = None  # a chunk stored before the column existed
+    await db_session.flush()
+    embedder.seen = 0
+    stats = await index_law(db_session, law, parsed, embedder)
+
+    await db_session.refresh(row)
+    assert row.search_text
+    assert (stats.added, stats.kept, stats.embedded, embedder.seen) == (0, 1, 0, 0)
