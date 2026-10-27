@@ -121,8 +121,29 @@ text because the model answered without citing a source, and the guard rejects s
 leave and says that the sources give no fixed number of days; it invents nothing, but it is
 not a refusal.
 
-Two comparisons from the plan are **not done yet**: the same questions to the model with no
-retrieval, and with all the laws in the prompt. Claude has not been called.
+**Against two baselines**, with the same model and the same 56 questions
+([details](eval/results/2026-10-27-comparison.md)): the model with no retrieval, and the model
+with all 920 chunks of the corpus in the prompt as numbered sources.
+
+| Condition | Answered | Every expected fact | Cites an expected section | Unanswerable refused |
+|---|---|---|---|---|
+| no retrieval | 26 of 46 | 20 of 46 | not applicable | 6 of 10 |
+| the system, 5 sections found | 37 of 46 | 35 of 46 | 33 of 46 | 9 of 10 |
+| all laws in the prompt | 44 of 46 | 43 of 46 | 43 of 46 | 9 of 10 |
+
+| Condition | Tokens in, 56 questions | Seconds per question |
+|---|---|---|
+| no retrieval | 7.7 thousand | 2.2 |
+| the system | about 123 thousand | 1.5 |
+| all laws in the prompt | 14.0 million | 7.3 |
+
+Retrieval clearly beats no retrieval. But **putting all the laws in the prompt beat the
+system** on this corpus: it answered 7 questions more with every fact, and found 10 questions
+that the system missed. What the system gains is cost and speed (about a hundredth of the
+tokens, and five times faster), and scale: 20 laws are 255 thousand tokens, which fits one
+prompt, a corpus of hundreds of laws would not. The numbers come from one free model, one
+non-deterministic run each, and the system row mixes the dev and test runs. Claude has not
+been called.
 
 ## What failed
 
@@ -131,6 +152,11 @@ retrieval, and with all the laws in the prompt. Claude has not been called.
   were declared before the runs, with the rule that a variant counts only if it finds at
   least two more questions than vector search without a worse MRR. None did. The default is vector search; the other modes stay
   as options ([ADR-0010](docs/adr/0010-retrieval-mode.md)).
+- **Sending everything beat searching.** With all 920 chunks in the prompt the same model
+  answered 43 of 46 questions with every fact, against 35 for the system. The system's
+  misses come from sections that retrieval did not bring, so retrieval, not the model, is
+  its limit here. The case for retrieval at this size is cost, latency and the way it scales,
+  not accuracy.
 - **Most misses are vocabulary gaps, not ranking errors.** Four of the five vector misses
   ask about late wages, deductions, limitation periods or "which court", where the law
   uses other words (for example "הלנת שכר" or "בית דין"). Neither search finds them.
