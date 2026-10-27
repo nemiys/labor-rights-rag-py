@@ -1,7 +1,7 @@
 [project]
 name = "labor-rights-rag-py"
 version = "0.1.0"
-description = "RAG question answering over technical documentation, with hand-written retrieval and evaluation"
+description = "RAG question answering over Israeli labor laws in Hebrew, with hand-written retrieval and evaluation"
 authors = [
     { name = "nemiys", email = "nemiys@gmail.com" }
 ]
@@ -56,7 +56,6 @@ asyncio_mode = "auto"
 
 [dependency-groups]
 dev = [
-    "httpx2>=2.15.1",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",

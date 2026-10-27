@@ -66,7 +66,7 @@ corpus.yaml ─► Fetcher: ויקיטקסט API (revid, wikitext) + OData של 
 ```
 
 - **Postgres + pgvector** (אינדקס HNSW) ו-**Postgres FTS** (GIN על tsvector): מסד אחד לשניהם. לחיפוש טקסט בעברית אין מילון ב-Postgres, ולכן נדרש נרמול (ניקוד, תחיליות). זו נקודת החלטה.
-- **Redis:** נשאר ב-compose, אך לא בשימוש עד שיש בו צורך אמיתי (cache תשובות/embeddings, rate limit). אין BFS ואין frontier.
+- **Redis:** הוסר (ADR-0012). לא היה בו שימוש. אפשר להחזיר אם יתווסף cache או rate limit.
 - **Embeddings:** ל-Claude API אין endpoint של embeddings, ולכן מודל מקומי רב-לשוני (`sentence-transformers`, למשל BGE-M3 או multilingual-e5), מאחורי interface `Embedder`. `bge-small-en` לא מתאים לעברית. לשמור בכל chunk את שם המודל והמימד.
 - **יצירת תשובה:** Claude API דרך ה-SDK הרשמי. שם המודל ב-env (`ANSWER_MODEL`), ברירת מחדל `claude-sonnet-5-5`. מפתח ב-`ANTHROPIC_API_KEY` בלבד.
 - **אסור:** LangChain, LlamaIndex, Haystack. מותר: `httpx`, `sqlalchemy`, `asyncpg`, `alembic`, `pgvector`, `sentence-transformers`, `anthropic`, `pydantic`.
@@ -82,7 +82,7 @@ corpus.yaml ─► Fetcher: ויקיטקסט API (revid, wikitext) + OData של 
 src/labor_rights_rag/{ingest,parsing,chunking,embeddings,retrieval,generation,api,persistence}/
   settings.py  main.py
 corpus.yaml  eval/{questions.jsonl,run_eval.py}  docs/adr/  tests/  alembic/
-docker-compose.yml (pgvector + redis)  Dockerfile  .github/workflows/ci.yml
+docker-compose.yml (pgvector)  Dockerfile  .github/workflows/ci.yml
 ```
 
 ## 4. API (מינימום)
@@ -105,14 +105,14 @@ docker-compose.yml (pgvector + redis)  Dockerfile  .github/workflows/ci.yml
 5. ~~🧠 **חיבור תוצאות**~~ **סגור (ADR-0007 ו-ADR-0010):** נמדדו חיבורים שונים ואף אחד לא עקף חיפוש וקטורי לבדו על סט הכוונון. ברירת המחדל היא וקטורי; BM25 והיברידי נשארים כאפשרות. סט הבדיקה ירוץ פעם אחת בסוף.
 6. **Reranking:** כן או לא, כניסוי מדוד.
 7. ~~🧠 **Prompt**~~ **סגור לפיתוח (ADR-0008 ו-ADR-0009):** מקורות ממוספרים ומוגנים, ציטוט במספרים, סירוב בשתי שכבות. נבדק בהערכה.
-8. **Redis:** האם יש לו תפקיד אמיתי (cache, rate limit).
+8. ~~**Redis:**~~ **סגור (ADR-0012):** הוסר, כי לא היה בו שימוש.
 9. **פריסה ודמו.**
 
 כל החלטה נרשמת ב-ADR קצר.
 
 ## 6. שלבים (כל שלב מסתיים ב-commit וב-checkpoint איתי)
 
-0. ✅ שלד: uv, settings, docker-compose (**פורטים:** Postgres 5435, Redis 6382, אפליקציה 8002), `/health`, CI, תבנית ADR.
+0. ✅ שלד: uv, settings, docker-compose (**פורטים:** Postgres 5435, אפליקציה 8002), `/health`, CI, תבנית ADR.
 1. ✅ החלטות ומודל נתונים: עדכון `CLAUDE.md`, ADR-0002 ו-ADR-0003, Alembic, הרחבת `vector`, טבלאות `laws` ו-`chunks`.
 2. ✅ אחזור ופרסור: לקוחות ויקיטקסט ו-OData, פרסור wikitext לסעיפים ולתגיות תיקון, בדיקת עדכניות, דוח אימות לכל החוקים.
 3. ✅ chunking, embeddings ואינדוקס אידמפוטנטי.

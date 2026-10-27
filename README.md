@@ -22,7 +22,7 @@ uv run uvicorn labor_rights_rag.main:app --port 8002
 
 The app is also available through Compose on `http://localhost:8002/health`.
 
-Ports: Postgres 5435, Redis 6382, app 8002.
+Ports: Postgres 5435, app 8002.
 
 ## Decisions
 

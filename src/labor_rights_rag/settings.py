@@ -14,8 +14,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = "postgresql+asyncpg://docs:docs@localhost:5435/docs"
-    redis_url: str = "redis://localhost:6382/0"
+    database_url: str = "postgresql+asyncpg://labor:labor@localhost:5435/labor"
 
     # Which embedding model computes vectors: "bge-m3" (needs the extra) or "hash" (a fake).
     embedder: str = "bge-m3"
