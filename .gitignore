@@ -14,3 +14,6 @@ postgresdata/
 # model weights, if a cache is ever put inside the project
 *.safetensors
 *.onnx
+
+# Local instructions for the coding assistant, kept out of the repository
+CLAUDE.md
