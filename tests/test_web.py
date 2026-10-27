@@ -99,7 +99,30 @@ def test_enter_sends_and_shift_enter_makes_a_new_line_but_not_while_composing() 
     assert "submit.disabled" in script  # no second question while one is being answered
 
 
-def test_the_page_tells_the_two_keys() -> None:
-    page = (WEB / "index.html").read_text(encoding="utf-8")
+def test_the_browser_must_check_the_script_with_the_server_every_time() -> None:
+    client = TestClient(create_app())
 
-    assert "לשליחה" in page and "לשורה חדשה" in page
+    for path in ("/static/app.js", "/static/style.css", "/"):
+        assert client.get(path).headers["cache-control"] == "no-cache", path
+
+
+def test_the_page_names_each_file_with_a_version_taken_from_its_content() -> None:
+    page = TestClient(create_app()).get("/").text
+
+    assert re.search(r'/static/app\.js\?v=[0-9a-f]{10}"', page)
+    assert re.search(r'/static/style\.css\?v=[0-9a-f]{10}"', page)
+
+
+def test_a_changed_script_gets_a_new_address() -> None:
+    from labor_rights_rag import main
+
+    before = main.page_with_versioned_assets()
+    script = WEB / "app.js"
+    original = script.read_bytes()
+    try:
+        script.write_bytes(original + b"\n// changed\n")
+        after = main.page_with_versioned_assets()
+    finally:
+        script.write_bytes(original)
+
+    assert before != after
