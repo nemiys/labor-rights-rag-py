@@ -89,7 +89,8 @@ questions with nothing changed, because the model is not deterministic):
 | Unanswerable questions answered anyway | 0 | 0 |
 | Mean seconds per question | 1.3 | 1.5 |
 
-Read these as a range of about two questions, not as exact figures. Two comparisons from
+Read these as a range of about two questions, not as exact figures. A manual read of ten
+answers is described below. Two comparisons from
 the plan are **not done yet**: the same questions to the model with no retrieval, and with
 all the laws in the prompt. The test split has not been run, and Claude has not been called.
 
@@ -107,6 +108,13 @@ all the laws in the prompt. The test split has not been run, and Claude has not 
   an HNSW index on a small table or after many deletes returned one row where two were
   expected. Queries are now exact by default, which is milliseconds for 920 vectors
   ([ADR-0011](docs/adr/0011-exact-vector-scan.md)).
+- **Faithful is not the same as helpful.** Ten answers were read by hand against the full
+  text of their sources ([review](eval/results/2026-10-27-dev-faithfulness-review.md)).
+  None stated an invented fact. Two were still misleading: a question about unpaid wages was
+  answered with the limitation period of late-payment compensation, which the law says is
+  "as distinct from wages", and a question about a collapsing company was answered with
+  the liability of a new employer, in a section that does not apply to bankruptcy. The
+  automatic fact check marked both correct, because it looks for terms, not for relevance.
 - **Five laws are marked `ahead`.** Their text in the Open Law Book shows an amendment
   that the Knesset registry does not yet list. The likely reason is a lag in the registry,
   but that is not verified; the card shows a yellow note.
