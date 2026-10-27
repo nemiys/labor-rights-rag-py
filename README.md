@@ -65,8 +65,9 @@ question ─► Embedder ─► vector search (exact, cosine, top-k)
 
 56 questions about Israeli labor law in a citizen's words, written before looking at any
 result and frozen by a hash that a test checks ([eval/README.md](eval/README.md)). They are
-split into 39 `dev` questions, used for tuning, and 17 `test` questions, **not yet run**. The
-numbers below are `dev` only, over the 32 questions the corpus can answer.
+split into 39 `dev` questions, used for tuning, and 17 `test` questions, run **once**, at the
+end, after every setting was fixed. The first two tables are `dev`, over the 32 questions the
+corpus can answer; the test results come after them.
 
 **Retrieval** (share of questions with an expected section among the first k results):
 
@@ -90,9 +91,38 @@ questions with nothing changed, because the model is not deterministic):
 | Mean seconds per question | 1.3 | 1.5 |
 
 Read these as a range of about two questions, not as exact figures. A manual read of ten
-answers is described below. Two comparisons from
-the plan are **not done yet**: the same questions to the model with no retrieval, and with
-all the laws in the prompt. The test split has not been run, and Claude has not been called.
+answers is described below.
+
+**The test split** (17 questions, 14 with an answer; run once on 2026-10-27, nothing changed
+afterwards, [full report](eval/results/2026-10-27-test.md)):
+
+| Mode | Hit@1 | Hit@3 | Hit@5 | MRR |
+|---|---|---|---|---|
+| vector (the default) | 50% | 79% | 79% | 0.626 |
+| text | 21% | 43% | 43% | 0.329 |
+| BM25 | 29% | 43% | 50% | 0.391 |
+| hybrid, vector and Postgres text | 29% | 71% | 79% | 0.504 |
+| hybrid, vector and BM25 | 29% | 64% | 79% | 0.504 |
+
+| Answers on the test split | Result |
+|---|---|
+| Answerable questions answered | 11 of 14 |
+| Answers with every expected fact | 10 of 14 |
+| Answers citing an expected section | 9 of 14 |
+| Unanswerable questions refused | 2 of 3 |
+| Unanswerable questions answered anyway | 1 of 3 (see below) |
+
+With 14 questions one question is 7 points, so the table shows direction, not precision. The
+finding of the dev split held: the hybrid modes reach the same Hit@5 as vector search and a
+lower MRR. The answers were weaker than on dev. Three answerable questions got the refusal
+text because the model answered without citing a source, and the guard rejects such answers
+(`rejected_no_citations`). The one unanswerable question that was answered
+(a relative's death and leave) got a text that quotes a real rule about mourning days in annual
+leave and says that the sources give no fixed number of days; it invents nothing, but it is
+not a refusal.
+
+Two comparisons from the plan are **not done yet**: the same questions to the model with no
+retrieval, and with all the laws in the prompt. Claude has not been called.
 
 ## What failed
 
@@ -108,6 +138,10 @@ all the laws in the prompt. The test split has not been run, and Claude has not 
   an HNSW index on a small table or after many deletes returned one row where two were
   expected. Queries are now exact by default, which is milliseconds for 920 vectors
   ([ADR-0011](docs/adr/0011-exact-vector-scan.md)).
+- **The test split was weaker than dev, mostly in the answers.** Three of 14 answerable
+  questions ended in a refusal because the model wrote an answer without citations, and
+  one unanswerable question got a related, faithful answer instead of a refusal. The dev
+  numbers should be read as the optimistic ones.
 - **Faithful is not the same as helpful.** Ten answers were read by hand against the full
   text of their sources ([review](eval/results/2026-10-27-dev-faithfulness-review.md)).
   None stated an invented fact. Two were still misleading: a question about unpaid wages was
@@ -120,8 +154,9 @@ all the laws in the prompt. The test split has not been run, and Claude has not 
   but that is not verified; the card shows a yellow note.
 - **A model that never refuses is worse than one that sometimes does.** The system refuses
   in two layers: a similarity threshold before the model, and the model itself. On the dev
-  questions no unanswerable question got an answer, at the cost of refusing some that
-  could have been answered ([ADR-0009](docs/adr/0009-refusal-and-verification.md)).
+  questions no unanswerable question got an answer; on the test split one of three did,
+  with a faithful but related text. The cost is refusing some questions that could have
+  been answered ([ADR-0009](docs/adr/0009-refusal-and-verification.md)).
 
 ## Decisions
 
@@ -156,7 +191,8 @@ all the laws in the prompt. The test split has not been run, and Claude has not 
 
 ## Sources and license
 
-The law text comes from the [Open Law Book](https://he.wikisource.org/wiki/%D7%A1%D7%A4%D7%A8_%D7%94%D7%97%D7%95%D7%A7%D7%99%D7%9D_%D7%94%D7%A4%D7%AA%D7%95%D7%97)
+The code is released under the [MIT license](LICENSE). The law text is not part of that
+license. It comes from the [Open Law Book](https://he.wikisource.org/wiki/%D7%A1%D7%A4%D7%A8_%D7%94%D7%97%D7%95%D7%A7%D7%99%D7%9D_%D7%94%D7%A4%D7%AA%D7%95%D7%97)
 on Hebrew Wikisource, available under
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), and is checked against the
 Knesset's OData service. Quotes in the answers, the test fixtures and the evaluation
