@@ -85,6 +85,17 @@ async def seeded(db_session: AsyncSession) -> AsyncSession:
             chunks=chunks,
         )
     )
+    # Added after the first law but with a smaller id: it must still come first.
+    db_session.add(
+        Law(
+            odata_id=LAW_ID - 1,
+            name="חוק קודם",
+            wikisource_title="חוק קודם",
+            currency_status="ok",
+            fetched_at=datetime(2026, 10, 22, tzinfo=UTC),
+            chunks=[Chunk(section_number="9", text="טקסט 9", content_hash="b-9", chunk_index=0)],
+        )
+    )
     await db_session.flush()
     return db_session
 
@@ -94,6 +105,10 @@ async def test_all_the_laws_are_every_chunk_numbered_in_order(seeded: AsyncSessi
 
     ours = [h for h in hits if h.law_odata_id == LAW_ID]
     assert [h.section_number for h in ours] == ["1", "2", "3"]
+    both = [
+        (h.law_odata_id, h.section_number) for h in hits if h.law_odata_id in (LAW_ID - 1, LAW_ID)
+    ]
+    assert both == [(LAW_ID - 1, "9"), (LAW_ID, "1"), (LAW_ID, "2"), (LAW_ID, "3")]
     assert [h.rank for h in hits] == list(range(1, len(hits) + 1))  # 1..n with no gaps
     assert ours[0].law_name == "חוק לבדיקה"
     assert ours[0].text == "טקסט 1"

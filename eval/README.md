@@ -51,3 +51,19 @@ the section exists, not that it supports the claim: that is checked by hand on a
 A model run is not repeatable to the question: the same 39 dev questions gave 24 and 26 answers
 in two runs, so a single number is reported with its range, and a change is real only if it is
 larger than that. `results/*-answers.md` has the full answers, to read by hand.
+
+## Two comparison conditions
+
+To say whether retrieval helps, the same model gets the same questions in two more ways
+(`--condition` in `run_eval.py`; both need `ANSWERER=chat` and ignore the retrieval modes):
+
+| Condition | What the model gets | What it shows |
+|---|---|---|
+| `closed_book` | the question only; it may say it does not know | what it knows alone, and how often it answers outside the corpus |
+| `system` | the five sections that vector search found (the application) | the system |
+| `all_laws` | all the chunks of the corpus as numbered sources, the same prompt and the same citation check | whether searching is needed at all |
+
+In `closed_book` there are no sources, so "citing an expected section" does not apply, and a
+question the corpus cannot answer counts as "answered anyway" when the model answers it. That
+measures staying inside the corpus, not whether the answer is true: a model may know a right
+that comes from an extension order, which the corpus does not hold.
