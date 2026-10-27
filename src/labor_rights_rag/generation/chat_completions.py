@@ -10,7 +10,7 @@ from collections.abc import Sequence
 import httpx
 
 from labor_rights_rag.generation.base import ModelResponse
-from labor_rights_rag.generation.prompt import build_prompt
+from labor_rights_rag.generation.prompt import Prompt, build_prompt
 from labor_rights_rag.http_retry import with_retries
 from labor_rights_rag.retrieval.hit import Hit
 
@@ -34,8 +34,11 @@ class ChatCompletionsAnswerer:
         self._client = client or httpx.AsyncClient(timeout=120.0)
         self._retry_delays = retry_delays
 
+    def _prompt(self, question: str, hits: Sequence[Hit]) -> Prompt:
+        return build_prompt(question, hits)
+
     async def answer(self, question: str, hits: Sequence[Hit]) -> ModelResponse:
-        prompt = build_prompt(question, hits)
+        prompt = self._prompt(question, hits)
         payload = {
             "model": self.name,
             "messages": [

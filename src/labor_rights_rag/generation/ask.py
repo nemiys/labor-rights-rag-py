@@ -1,5 +1,6 @@
 """From a question to a checked answer: search, decide, ask the model, verify, build cards."""
 
+from collections.abc import Sequence
 from typing import Literal
 
 from pydantic import BaseModel
@@ -13,6 +14,7 @@ from labor_rights_rag.generation.messages import DISCLAIMER, REFUSAL_MESSAGE
 from labor_rights_rag.generation.parse import parse_answer
 from labor_rights_rag.generation.pricing import estimate_cost_usd
 from labor_rights_rag.persistence.models import Law
+from labor_rights_rag.retrieval.hit import Hit
 from labor_rights_rag.retrieval.vector import vector_search
 
 # Why a reply is what it is. The person sees only the answer or the refusal sentence; the
@@ -72,7 +74,14 @@ async def ask(
     hits = await vector_search(session, embedder, question, k, law_odata_id)
     if not hits or hits[0].score < min_vector_score:
         return _refusal("refused_low_score")
+    return await answer_from_hits(session, answerer, question, hits)
 
+
+async def answer_from_hits(
+    session: AsyncSession, answerer: Answerer, question: str, hits: Sequence[Hit]
+) -> AskResult:
+    """Ask the model with these sources and check what it wrote. The evaluation also uses it
+    with sources it chose itself (all the laws), so that every condition is checked alike."""
     response = await answerer.answer(question, hits)
     usage = {
         "input_tokens": response.input_tokens,

@@ -2,7 +2,7 @@
 
 import asyncio
 import sys
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -137,6 +137,9 @@ class GenerationRow:
         )
 
 
+AskOne = Callable[[str], Awaitable[AskResult]]
+
+
 async def run_generation(
     session: AsyncSession,
     embedder: Embedder,
@@ -147,22 +150,27 @@ async def run_generation(
     pause_seconds: float = 0.0,
     question_timeout: float = 240.0,
 ) -> list[GenerationRow]:
+    async def ask_one(question: str) -> AskResult:
+        return await ask(
+            session, embedder, answerer, question, k=5, min_vector_score=min_vector_score
+        )
+
+    return await run_condition(ask_one, questions, pause_seconds, question_timeout)
+
+
+async def run_condition(
+    ask_one: AskOne,
+    questions: Sequence[Question],
+    pause_seconds: float = 0.0,
+    question_timeout: float = 240.0,
+) -> list[GenerationRow]:
+    """Every question through one way of answering: the system, or a comparison condition."""
     rows: list[GenerationRow] = []
     for number, question in enumerate(questions, start=1):
         progress: str
         try:
             # A hard limit per question: a service that hangs must not stall the whole run.
-            result = await asyncio.wait_for(
-                ask(
-                    session,
-                    embedder,
-                    answerer,
-                    question.question,
-                    k=5,
-                    min_vector_score=min_vector_score,
-                ),
-                timeout=question_timeout,
-            )
+            result = await asyncio.wait_for(ask_one(question.question), timeout=question_timeout)
             rows.append(GenerationRow(question, result, None))
             progress = result.status
         except Exception as error:  # a failed call is a result, not the end of the run

@@ -95,7 +95,9 @@ def _share(count: int, total: int) -> str:
     return f"{_pct(count / total)} ({count}/{total})" if total else "-"
 
 
-def generation_report(rows: Sequence[GenerationRow], model: str, split: str) -> str:
+def generation_report(
+    rows: Sequence[GenerationRow], model: str, split: str, condition: str = "system"
+) -> str:
     answerable = [r for r in rows if r.question.answerable]
     unanswerable = [r for r in rows if not r.question.answerable]
     called = [r for r in unanswerable if r.result]
@@ -114,7 +116,9 @@ def generation_report(rows: Sequence[GenerationRow], model: str, split: str) -> 
         ),
         (
             "Answers citing an expected section",
-            _share(sum(r.citation_ok for r in answerable), len(answerable)),
+            "not applicable (no sources)"
+            if condition == "closed_book"
+            else _share(sum(r.citation_ok for r in answerable), len(answerable)),
         ),
         (
             "Unanswerable questions refused",
@@ -132,7 +136,8 @@ def generation_report(rows: Sequence[GenerationRow], model: str, split: str) -> 
         ("Cost in dollars", f"{sum(costs):.4f}" if costs else "not priced (a free model)"),
     ]
     lines = [
-        f"# Generation evaluation ({date.today()}, model: {model}, split: {split})",
+        f"# Generation evaluation ({date.today()}, model: {model}, split: {split}, "
+        f"condition: {condition})",
         "",
         f"Questions: {len(rows)}, of which {len(answerable)} answerable. "
         f"Calls that failed: {sum(r.result is None for r in rows)}.",
@@ -147,7 +152,8 @@ def generation_report(rows: Sequence[GenerationRow], model: str, split: str) -> 
         "|---|---|---|---|---|",
     ]
     for r in rows:
-        bad = not (r.facts_ok and r.citation_ok) if r.question.answerable else r.answered
+        right = r.facts_ok and (r.citation_ok or condition == "closed_book")
+        bad = not right if r.question.answerable else r.answered
         if bad:
             status = r.result.status if r.result else f"ERROR {r.error}"
             facts, cite = ("yes" if r.facts_ok else "no"), ("yes" if r.citation_ok else "no")
