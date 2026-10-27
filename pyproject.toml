@@ -21,6 +21,7 @@ dependencies = [
 [project.optional-dependencies]
 embeddings = [
     "sentence-transformers>=6.2.0",
+    "torch",
 ]
 
 [build-system]
@@ -62,3 +63,13 @@ dev = [
     "respx>=0.23.1",
     "ruff>=0.17.1",
 ]
+
+# On Linux (the Docker image) take torch from the CPU-only index: the default wheel brings
+# several GB of GPU libraries this project never uses. Other systems keep the PyPI wheel.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

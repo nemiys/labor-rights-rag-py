@@ -1,5 +1,19 @@
 name: labor-rights-rag
 
+# One image for the three jobs: apply the migrations, load the laws, serve the application.
+x-app: &app
+  build: .
+  image: labor-rights-rag-app
+  # Optional: a .env next to this file (ANSWERER, CHAT_*, ANTHROPIC_API_KEY) is read at run
+  # time. It is never copied into the image. Without it the answers are fake (see README).
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    DATABASE_URL: postgresql+asyncpg://labor:labor@postgres:5432/labor
+  volumes:
+    - models:/models  # the embedding model is downloaded once, not on every start
+
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -17,15 +31,38 @@ services:
       timeout: 3s
       retries: 10
 
-  app:
-    build: .
-    ports:
-      - "8002:8000"
-    environment:
-      DATABASE_URL: postgresql+asyncpg://labor:labor@postgres:5432/labor
+  migrate:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
     depends_on:
       postgres:
         condition: service_healthy
+    restart: "no"
+
+  app:
+    <<: *app
+    ports:
+      - "8002:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    # Loading the model takes about a minute and a half; the first start also downloads it.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 600s
+
+  # Not started by `docker compose up`. Run it once: docker compose run --rm ingest
+  ingest:
+    <<: *app
+    profiles: ["ingest"]
+    command: ["python", "-m", "labor_rights_rag.ingest"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   postgresdata:
+  models:
