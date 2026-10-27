@@ -135,6 +135,15 @@ async function ask(question) {
   }
 }
 
+// As in a chat: Enter sends the question, Shift+Enter starts a new line. While a word is still
+// being composed with an input method, Enter belongs to the composition and is left alone.
+input.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    if (!submit.disabled) form.requestSubmit();
+  }
+});
+
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   const question = input.value.trim();

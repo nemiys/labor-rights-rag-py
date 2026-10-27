@@ -87,3 +87,19 @@ def test_the_answer_and_the_refusal_have_a_heading() -> None:
 
     assert 'text: "התשובה"' in script
     assert 'text: "לא נמצאה תשובה"' in script
+
+
+def test_enter_sends_and_shift_enter_makes_a_new_line_but_not_while_composing() -> None:
+    script = (WEB / "app.js").read_text(encoding="utf-8")
+
+    assert 'event.key === "Enter"' in script
+    assert "!event.shiftKey" in script  # Shift+Enter keeps the browser's own new line
+    assert "!event.isComposing" in script  # Enter confirms a word that is being composed
+    assert "form.requestSubmit()" in script  # the same path as the button, with its checks
+    assert "submit.disabled" in script  # no second question while one is being answered
+
+
+def test_the_page_tells_the_two_keys() -> None:
+    page = (WEB / "index.html").read_text(encoding="utf-8")
+
+    assert "לשליחה" in page and "לשורה חדשה" in page
