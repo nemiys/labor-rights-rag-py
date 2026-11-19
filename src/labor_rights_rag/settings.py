@@ -7,7 +7,7 @@ environment variables (there "localhost" reaches nothing; the service name does)
 
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import PositiveInt, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,8 +24,12 @@ class Settings(BaseSettings):
     search_candidates: int = 50
 
     # Refuse without calling the model when even the closest chunk is further than this
-    # (cosine similarity, BGE-M3). A first, careful value; tuned in the evaluation.
+    # (cosine similarity, BGE-M3). Kept after the evaluation: on both splits it refused no
+    # answerable question (ADR-0009).
     min_vector_score: float = 0.5
+    # Questions per client address on /ask: each one can call a paid model (ADR-0013).
+    ask_limit: PositiveInt = 10
+    ask_window_seconds: PositiveInt = 60
     # Which model writes the answers: "fake" (tests), "claude", or "chat" (any model that
     # speaks the /chat/completions protocol: Ollama, a free hosted service).
     answerer: str = "fake"
@@ -43,8 +47,11 @@ class Settings(BaseSettings):
     corpus_path: str = "corpus.toml"
     knesset_odata_url: str = "https://knesset.gov.il/OdataV4/ParliamentInfo"
     wikisource_api_url: str = "https://he.wikisource.org/w/api.php"
-    # Wikimedia asks API clients to identify themselves with a way to reach the owner.
-    http_user_agent: str = "labor-rights-rag/0.1 (portfolio project; nemiys@gmail.com)"
+    # Wikimedia asks API clients to identify themselves with a way to reach the owner. The
+    # default points to the project; whoever runs a copy sets HTTP_USER_AGENT to their own.
+    http_user_agent: str = (
+        "labor-rights-rag/0.1 (portfolio project; https://github.com/nemiys/labor-rights-rag-py)"
+    )
     request_delay_seconds: float = 1.0
 
 

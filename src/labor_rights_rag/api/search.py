@@ -61,17 +61,13 @@ async def search(
     if not query:
         raise HTTPException(status_code=422, detail="q must not be blank")
 
-    if mode in ("bm25", "hybrid_bm25") and bm25 is None:
-        raise HTTPException(status_code=503, detail="the BM25 index is not loaded")
-
     hits: list[Hit]
     if mode == "vector":
         hits = await vector_search(session, embedder, query, k, law)
     elif mode == "text":
         hits = await text_search(session, query, k, law)
     elif mode == "bm25":
-        assert bm25 is not None  # checked above
-        hits = await bm25_search(session, bm25, query, k, law)
+        hits = await bm25_search(session, await bm25(), query, k, law)
     else:
         found = await hybrid_search(
             session,
@@ -81,7 +77,7 @@ async def search(
             law,
             settings.search_candidates,
             settings.rrf_k,
-            bm25 if mode == "hybrid_bm25" else None,
+            await bm25() if mode == "hybrid_bm25" else None,
         )
         hits = found.hits
     return SearchResponse(

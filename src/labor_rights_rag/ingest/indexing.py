@@ -8,6 +8,8 @@ A chunk's identity is (section, part, hash of the text that is embedded). The ha
 the header too, so a renamed law or a different model recomputes the vector.
 """
 
+import asyncio
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -63,7 +65,8 @@ async def index_law(
             stats.removed += 1
 
     if to_embed:
-        vectors = embedder.embed_documents([text for _, text in to_embed])
+        # The model is CPU-bound: a thread keeps the event loop free, as in vector_search.
+        vectors = await asyncio.to_thread(embedder.embed_documents, [text for _, text in to_embed])
         for (row, _), vector in zip(to_embed, vectors, strict=True):
             row.embedding = vector
             row.embedding_model = embedder.name

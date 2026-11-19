@@ -40,17 +40,33 @@ For development: `docker compose up -d --wait postgres`, `uv sync --extra embedd
 
 ## How it works
 
+```mermaid
+flowchart TB
+    subgraph ingest [Ingest: once, and again when a law changes]
+        corpus[corpus.toml: 20 laws] --> fetch[Fetcher]
+        ws([Wikisource API: revid, wikitext]) --> fetch
+        kn([Knesset OData: validity, last publication]) --> fetch
+        fetch --> parse[Parser: sections, amendment tags, currency check]
+        parse --> chunk[Chunker: one section per chunk, long ones split by structure]
+        chunk --> embed1[Embedder: BGE-M3]
+    end
+    embed1 --> db[(Postgres + pgvector: laws, chunks)]
+    subgraph answer [Answering a question]
+        q([Question]) --> embed2[Embedder: BGE-M3]
+        embed2 --> search[Exact vector search, cosine, top-k]
+        search --> gate{Closest chunk close enough?}
+        gate -->|no| refuse([Refusal, no model call])
+        gate -->|yes| prompt[Prompt: numbered sources as data only]
+        prompt --> model["Model: answer with [n] citations"]
+        model --> check{At least one citation, all to given sources?}
+        check -->|no| refuse
+        check -->|yes| card([Answer with a verification card])
+    end
+    db --> search
+    db -->|quotes, dates, links| card
 ```
-corpus.toml ─► Fetcher: Wikisource API (revid, wikitext) + Knesset OData (validity, last publication)
-            ─► Parser: wikitext ─► sections + amendment tags ─► currency check
-            ─► Chunker (one section = one chunk; long ones split by structure)
-            ─► Embedder (BGE-M3) ─► Postgres + pgvector: laws, chunks
 
-question ─► Embedder ─► vector search (exact, cosine, top-k)
-         ─► refuse if the closest chunk is too far (before any model call)
-         ─► prompt: numbered sources as data only ─► model ─► answer with [n] citations
-         ─► checks: every cited number exists ─► verification card from the database
-```
+Arrows show the direction data flows.
 
 | Part | Choice |
 |---|---|
@@ -58,8 +74,8 @@ question ─► Embedder ─► vector search (exact, cosine, top-k)
 | Storage | PostgreSQL 17 with pgvector (SQLAlchemy 2 async, Alembic) |
 | Embeddings | BGE-M3 (1024 dimensions) behind an `Embedder` interface; a hash-based fake for tests and CI |
 | Retrieval | vector, Postgres full-text on normalized Hebrew, a hand-written BM25, and RRF fusion of them |
-| Answers | an `Answerer` interface: Claude (Anthropic SDK), any OpenAI-compatible service, or a fake |
-| Tooling | Python 3.12, uv, ruff, mypy (strict), pytest (269 tests), GitHub Actions with a real pgvector |
+| Answers | an `Answerer` interface: any OpenAI-compatible service (the evaluation used Gemini's free tier), Claude through the Anthropic SDK (implemented and tested with mocks, not yet run against the API), or a fake for tests |
+| Tooling | Python 3.12, uv, ruff, mypy (strict), pytest (279 tests), GitHub Actions with a real pgvector |
 
 ## What was measured
 
@@ -186,19 +202,22 @@ been called.
 
 ## Decisions
 
-| Decision | Record |
-|---|---|
-| Corpus and allowed sources | [ADR-0002](docs/adr/0002-corpus-and-sources.md) |
-| Law versions, currency check, verification card | [ADR-0003](docs/adr/0003-versioning-and-verification.md) |
-| Chunking by section, long sections split by structure | [ADR-0004](docs/adr/0004-chunking.md) |
-| BGE-M3 for embeddings | [ADR-0005](docs/adr/0005-embedding-model.md) |
-| Hebrew text search | [ADR-0006](docs/adr/0006-hebrew-text-search.md) |
-| RRF fusion | [ADR-0007](docs/adr/0007-hybrid-fusion.md) |
-| Answer generation and the prompt | [ADR-0008](docs/adr/0008-answer-generation.md) |
-| When to refuse, and what is checked | [ADR-0009](docs/adr/0009-refusal-and-verification.md) |
-| Vector search as the default | [ADR-0010](docs/adr/0010-retrieval-mode.md) |
-| Exact vector scan | [ADR-0011](docs/adr/0011-exact-vector-scan.md) |
-| Redis removed | [ADR-0012](docs/adr/0012-remove-redis.md) |
+Each significant choice is recorded in [`docs/adr/`](docs/adr/): what was decided, what
+else was considered, and why.
+
+| ADR | Decision | Rejected alternatives |
+|---|---|---|
+| [0002](docs/adr/0002-corpus-and-sources.md) | 20 labor laws from the Open Law Book, cross-checked with the Knesset's registry | FastAPI documentation; official PDFs; a commercial database; six laws only |
+| [0003](docs/adr/0003-versioning-and-verification.md) | A currency check per law, and a verification card built from the database, never by the model | Trusting the Open Law Book alone; Knesset metadata only; citations written by the model |
+| [0004](docs/adr/0004-chunking.md) | One chunk per section; long sections split by the page's own structure | Whole sections always; fixed size with overlap; every subsection a chunk |
+| [0005](docs/adr/0005-embedding-model.md) | BGE-M3 embeddings behind an `Embedder` interface | multilingual-e5 first; a hosted embeddings API |
+| [0006](docs/adr/0006-hebrew-text-search.md) | Hebrew normalization in Python, Postgres full-text search | `pg_trgm` only; a morphological analyzer |
+| [0007](docs/adr/0007-hybrid-fusion.md) | Reciprocal Rank Fusion of vector and word search | A weighted sum of normalized scores |
+| [0008](docs/adr/0008-answer-generation.md) | Numbered sources as data, citations by number, models behind an `Answerer` interface | Claude only; a free model only; JSON output |
+| [0009](docs/adr/0009-refusal-and-verification.md) | Refusal in two layers; every citation checked before an answer is shown | A threshold only; the model only; keeping answers with invalid citations |
+| [0010](docs/adr/0010-retrieval-mode.md) | Vector search as the default, after measuring the hybrid modes | Hybrid search with RRF as the default |
+| [0011](docs/adr/0011-exact-vector-scan.md) | An exact vector scan at this scale, the HNSW index kept for later | Dropping the index; a larger `ef_search`; rebuilding after each ingest |
+| [0013](docs/adr/0013-rate-limit-on-ask.md) | A per-client limit on `/ask`, kept in memory; a model outage is a `503` | A shared limit in Redis; a gateway limit; no limit |
 
 ## Known limits
 

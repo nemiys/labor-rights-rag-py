@@ -12,18 +12,16 @@ from starlette.types import Scope
 
 from labor_rights_rag.api import ask, laws, search
 from labor_rights_rag.api.dependencies import get_embedder
-from labor_rights_rag.persistence.database import session_factory
-from labor_rights_rag.retrieval.bm25 import load_bm25_index
+from labor_rights_rag.api.rate_limit import SlidingWindowLimiter
+from labor_rights_rag.settings import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Load the model at start-up: a bad setup fails now, not on the first question.
+    # The BM25 index is not built here: only the debug modes of /search use it, so it is
+    # built the first time one of them is asked for (see api/dependencies.py).
     await asyncio.to_thread(get_embedder)
-    # The BM25 index is a few hundred kilobytes in memory. It is not refreshed while the
-    # application runs: restart it after an ingest.
-    async with session_factory() as session:
-        app.state.bm25 = await load_bm25_index(session)
     yield
 
 
@@ -64,15 +62,19 @@ def page_with_versioned_assets() -> str:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="labor-rights-rag", lifespan=lifespan)
+    app.state.ask_limiter = SlidingWindowLimiter(settings.ask_limit, settings.ask_window_seconds)
     app.include_router(search.router)
     app.include_router(ask.router)
     app.include_router(laws.router)
     app.mount("/static", RevalidatedStaticFiles(directory=WEB), name="static")
 
+    # Built once per process: the files only change with a new deployment.
+    page = page_with_versioned_assets()
+
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     async def home() -> HTMLResponse:
         return HTMLResponse(
-            page_with_versioned_assets(),
+            page,
             headers={"Content-Security-Policy": PAGE_POLICY, "Cache-Control": "no-cache"},
         )
 

@@ -160,13 +160,11 @@ async def test_search_endpoint_hybrid_shows_the_rank_in_each_search(client: Asyn
     assert first["vector_rank"] is not None
 
 
-@pytest.mark.parametrize("mode", ["bm25", "hybrid_bm25"])
-async def test_the_word_index_modes_say_so_when_the_index_is_not_loaded(
-    client: AsyncClient, mode: str
-) -> None:
-    response = await client.get("/search", params={"q": "חופשה", "mode": mode})
+async def test_the_word_index_is_built_on_first_use(client: AsyncClient) -> None:
+    response = await client.get("/search", params={"q": "חופשה שנתית", "law": LAW, "mode": "bm25"})
 
-    assert response.status_code == 503
+    assert response.status_code == 200
+    assert response.json()["hits"][0]["section"] == "1"
 
 
 @pytest.mark.parametrize("mode", ["bm25", "hybrid_bm25"])
@@ -182,7 +180,11 @@ async def test_the_word_index_modes_work_with_an_index(
         .where(Law.odata_id == LAW)
     )
     index = Bm25Index((row.id, LAW, row.search_text or "") for row in chunks)
-    client._transport.app.dependency_overrides[get_bm25] = lambda: index  # type: ignore[attr-defined]
+
+    async def load() -> Bm25Index:
+        return index
+
+    client._transport.app.dependency_overrides[get_bm25] = lambda: load  # type: ignore[attr-defined]
 
     response = await client.get("/search", params={"q": "חופשה שנתית", "law": LAW, "mode": mode})
 

@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator, Sequence
 from datetime import UTC, datetime
 
+import httpx
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -248,3 +249,44 @@ async def test_the_cost_of_a_priced_model_is_recorded_and_a_free_one_has_none(
 
     assert free.cost_usd is None
     assert priced.cost_usd == pytest.approx((10 * 2 + 5 * 10) / 1_000_000)
+
+
+class UnreachableAnswerer:
+    name = "unreachable"
+
+    async def answer(self, question: str, hits: Sequence[Hit]) -> ModelResponse:
+        raise httpx.ConnectError("the model service is down")
+
+
+async def test_a_model_that_is_down_is_a_503_with_retry_after_not_a_500(
+    client: AsyncClient,
+) -> None:
+    client._transport.app.dependency_overrides[get_answerer] = lambda: UnreachableAnswerer()  # type: ignore[attr-defined]
+
+    response = await client.post("/ask", json={"question": QUESTION})
+
+    assert response.status_code == 503
+    assert "retry-after" in response.headers
+
+
+async def test_too_many_questions_from_one_client_get_a_429(
+    seeded: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "min_vector_score", 0.0)
+    monkeypatch.setattr(settings, "ask_limit", 2)
+    app = create_app()
+
+    async def session() -> AsyncIterator[AsyncSession]:
+        yield seeded
+
+    app.dependency_overrides[get_session] = session
+    app.dependency_overrides[get_embedder] = lambda: embedder
+    app.dependency_overrides[get_answerer] = lambda: FakeAnswerer()
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as http:
+        codes = [
+            (await http.post("/ask", json={"question": QUESTION})).status_code for _ in range(3)
+        ]
+        refused = await http.post("/ask", json={"question": QUESTION})
+
+    assert codes == [200, 200, 429]
+    assert int(refused.headers["retry-after"]) >= 1
