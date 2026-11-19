@@ -6,9 +6,9 @@ Accepted.
 ## Context
 The Compose stack, the settings and the README listed Redis, but no code used it: the
 `redis_url` setting was read nowhere, there was no Redis client in the dependencies, and no
-test or CI step touched it. It came in with the first skeleton (stage 0), copied from the
-idea source `nemiys-searchengine`, where Redis held the crawler frontier. This project has no
-crawler (a closed list of laws and an API), so the reason was gone before the first commit.
+test or CI step touched it. It came in with the first project skeleton, planned as the
+queue of pages for a crawler. This project has no crawler (a closed list of laws and an
+API), so the reason was gone before the first commit.
 
 An audit for other leftovers (unused modules, functions, settings fields and dependencies)
 found the code clean, and these remains in the configuration:

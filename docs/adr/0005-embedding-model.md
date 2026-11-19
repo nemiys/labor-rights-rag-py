@@ -1,7 +1,9 @@
 # ADR-0005: Embedding model
 
 ## Status
-Accepted for development; the measured comparison is part of the evaluation (stage 6).
+Accepted. The planned comparison with multilingual-e5 was not run; with BGE-M3,
+vector search found an expected section in the first five results for 84% of the
+answerable dev questions (ADR-0010).
 
 ## Context
 The Claude API has no embeddings endpoint, so the vectors come from a local
@@ -10,7 +12,7 @@ BGE-M3 (1,024 dimensions, input up to about 8,000 tokens, no prefixes) and
 multilingual-e5 (384 to 1,024 dimensions depending on size, input about 512 tokens,
 needs the prefixes `query: ` and `passage: `). Our chunks go up to 1,500 characters
 and carry a header, which is close to the e5 input limit in Hebrew. These figures come
-from the model cards as I know them and are checked when the model is first loaded.
+from the model cards and are checked when the model is first loaded.
 
 ## Decision
 - **Start with BGE-M3** behind an `Embedder` interface (`embed_documents`,
@@ -22,9 +24,9 @@ from the model cards as I know them and are checked when the model is first load
   header or the model recomputes the vector. Indexing computes only chunks that have
   no vector for the current model.
 - **Tests use a fake embedder** (hashed words). CI never downloads the model.
-- **The comparison with multilingual-e5 is done in stage 6**, on the evaluation
-  questions, with hit@k and MRR for both. Both models give 1,024 dimensions at the
-  large size, so the comparison needs no schema change. If e5 wins, the decision is
+- **A comparison with multilingual-e5** on the evaluation questions, with hit@k and
+  MRR for both, was planned and has not been run. Both models give 1,024 dimensions
+  at the large size, so it needs no schema change. If e5 won, the decision would be
   replaced in a new ADR.
 
 ## Alternatives considered

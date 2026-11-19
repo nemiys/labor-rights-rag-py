@@ -30,9 +30,9 @@ unbounded and changes from question to question (0.1 for the best hit of one que
 - **A weighted sum of normalized scores:** uses the size of a score, but the scales
   differ and move between questions, so one weight would behave differently for each,
   and it needs tuning.
-- **A reranking model on top:** a separate decision (stage 4 does not include it).
+- **A reranking model on top:** a separate decision, not part of this one.
 
 ## Consequences
 - The fusion cannot say "there is no answer": it always returns the best of what the
-  two searches found. Refusal is decided in stage 5.
-- `k` is not tuned yet. The evaluation compares several values.
+  two searches found. Refusal is decided separately (ADR-0009).
+- The evaluation compared several values of `k` (ADR-0010).

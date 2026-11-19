@@ -1,7 +1,7 @@
 """Fetch one law from both sources, check it, and store its row in `laws`.
 
-Sections are parsed here only to check the page and to report on it. They are
-stored as chunks in stage 3, once the chunking rules are decided.
+Sections are parsed here only to check the page and to report on it. Chunking
+and storing them is the indexing step's job.
 """
 
 import hashlib

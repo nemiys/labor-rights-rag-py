@@ -6,7 +6,7 @@ fake embedder; then a few plain questions must find the section that answers the
 This tests the plumbing, not the quality of search. The fake embedder knows no meaning, so
 what is checked about vector search is that it is wired; what is checked about text search
 is real (Hebrew normalization on real law text). The evaluation questions, which measure
-quality, are a separate set that is written by hand in stage 6.
+quality, are a separate set (eval/questions.jsonl).
 """
 
 from pathlib import Path

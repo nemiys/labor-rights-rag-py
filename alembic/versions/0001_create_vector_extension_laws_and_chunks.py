@@ -19,7 +19,7 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     # Enabled now (it does not depend on the vector size); the embedding column
-    # itself is added in stage 3, once the embedding model is chosen.
+    # itself is added in a later migration (0003), once the model is chosen.
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
 
     op.create_table(

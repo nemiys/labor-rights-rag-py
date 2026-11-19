@@ -14,7 +14,7 @@ verification card cites sections.
 - **One chunk per section.** A section up to **1,500 characters** is one chunk. The
   limit is a ceiling, not a target size: chunks vary from tens of characters to 1,500.
   It is a starting value, derived from the length distribution above; its effect on
-  retrieval is measured in the evaluation (stage 6).
+  retrieval was not tested separately in the evaluation.
 - **Longer sections are split by the structure the page gives, not guessed from the
   text.** The Open Law Book marks every body line with a template whose name carries
   its level (`ח:תת` subsection, `ח:תתת` paragraph, `ח:תתתת` sub-paragraph). The parser
@@ -51,5 +51,5 @@ verification card cites sections.
 
 ## Consequences
 - About 5% of the sections are split, so the threshold affects few chunks. It is a
-  single constant and is measured again in the evaluation (stage 6).
+  single constant; changing it means running the ingest and the evaluation again.
 - The quote shown to the user is always a contiguous part of the stored law text.

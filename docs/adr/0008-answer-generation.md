@@ -1,7 +1,8 @@
 # ADR-0008: Answer generation
 
 ## Status
-Accepted for development; the choice of model is compared in the evaluation (stage 6).
+Accepted. The evaluation used one free model (`gemini-3.5-flash-lite`); Claude has not
+been called yet, so the cost-against-quality comparison is still open.
 
 ## Context
 The answer is written by a language model from the sections the search found. A wrong

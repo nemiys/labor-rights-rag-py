@@ -1,7 +1,8 @@
 # ADR-0009: When to refuse, and what is checked before an answer is shown
 
 ## Status
-Accepted for development; the threshold is tuned in the evaluation (stage 6).
+Accepted. The threshold of 0.5 was kept after the evaluation: on both the dev and the
+test split it refused no answerable question (tables in `eval/results/`).
 
 ## Context
 The search always returns something, even for a question the corpus does not cover

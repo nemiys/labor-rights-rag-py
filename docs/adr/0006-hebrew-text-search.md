@@ -1,7 +1,8 @@
 # ADR-0006: Hebrew text search
 
 ## Status
-Accepted for development; compared with the alternative in the evaluation (stage 6).
+Accepted. In the evaluation, word search alone and in fusion did not beat vector search
+(ADR-0010); `pg_trgm` was not tried.
 
 ## Context
 Vector search understands meaning but not identifiers: the question "סעיף 14א" returned
@@ -28,7 +29,7 @@ our database: `pg_trgm` recognizes Hebrew letters; the `simple` configuration ke
   they are in almost every chunk, and without this the question "סעיף 14א" returned
   sections that mention "סעיף" many times and not section 14א. With it, section 14א of
   both laws that have one comes back first.
-- **Scores of different searches are not comparable.** Fusion (stage 4, step 3) uses
+- **Scores of different searches are not comparable.** Fusion (ADR-0007) uses
   rank, not score.
 
 ## Alternatives considered

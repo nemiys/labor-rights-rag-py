@@ -1,7 +1,8 @@
 # ADR-0010: Vector search is the default retrieval mode
 
 ## Status
-Accepted for development. The test split is run once, at the end, and may change this.
+Accepted. The test split was run once (2026-10-27) and did not change it: the hybrid
+modes reached the same Hit@5 as vector search, with a lower MRR.
 
 ## Context
 ADR-0006 and ADR-0007 added word search and a fusion of the two searches on the assumption

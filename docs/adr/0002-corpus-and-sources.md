@@ -26,7 +26,7 @@ Findings from the source survey (October 2026):
 - Nevo is a commercial legal database.
 
 ## Decision
-- **Corpus:** about 20 or more Israeli labor laws, defined in `corpus.yaml`.
+- **Corpus:** about 20 or more Israeli labor laws, defined in `corpus.toml`.
   The boundary is the topic (employment relations), not a number. A law that is
   not found or does not fit is dropped, with a report.
 - **Text source:** Open Law Book via the MediaWiki API, with an identified
